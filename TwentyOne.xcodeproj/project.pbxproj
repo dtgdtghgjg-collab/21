@@ -1,0 +1,23 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 77;
+	objects = {
+		AA0000000000000000000001 /* TwentyOne */ = {isa = PBXFileSystemSynchronizedRootGroup; path = TwentyOne; sourceTree = "<group>"; };
+		AA0000000000000000000002 /* Products */ = {isa = PBXGroup; children = (AA0000000000000000000003 /* TwentyOne.app */); name = Products; sourceTree = "<group>"; };
+		AA0000000000000000000003 /* TwentyOne.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TwentyOne.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000004 = {isa = PBXNativeTarget; buildConfigurationList = AA000000000000000000000A; buildPhases = (AA0000000000000000000005, AA0000000000000000000006, AA0000000000000000000007); fileSystemSynchronizedGroups = (AA0000000000000000000001); name = TwentyOne; packageProductDependencies = (AA0000000000000000000008); productName = TwentyOne; productReference = AA0000000000000000000003; productType = "com.apple.product-type.application"; };
+		AA0000000000000000000005 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AA0000000000000000000006 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AA0000000000000000000007 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AA0000000000000000000008 = {isa = XCSwiftPackageProductDependency; productName = RealmSwift; package = AA0000000000000000000009; };
+		AA0000000000000000000009 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/realm/realm-swift.git"; requirement = {kind = upToNextMajorVersion; minimumVersion = 10.49.0; }; };
+		AA000000000000000000000A = {isa = XCConfigurationList; buildConfigurations = (AA000000000000000000000B, AA000000000000000000000C); defaultConfigurationName = Release; };
+		AA000000000000000000000B = {isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGNING_ALLOWED = NO; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "21"; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait; IPHONEOS_DEPLOYMENT_TARGET = 17.0; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = app.twentyone; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Debug; };
+		AA000000000000000000000C = {isa = XCBuildConfiguration; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGNING_ALLOWED = NO; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "21"; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait; IPHONEOS_DEPLOYMENT_TARGET = 17.0; LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = app.twentyone; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Release; };
+		AA000000000000000000000D = {isa = PBXProject; attributes = { BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; TargetAttributes = { AA0000000000000000000004 = { CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = AA000000000000000000000A; compatibilityVersion = "Xcode 15.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = AA000000000000000000000E; packageReferences = (AA0000000000000000000009); productRefGroup = AA0000000000000000000002; projectDirPath = ""; projectRoot = ""; targets = (AA0000000000000000000004); };
+		AA000000000000000000000E = {isa = PBXGroup; children = (AA0000000000000000000001, AA0000000000000000000002); sourceTree = "<group>"; };
+	};
+	rootObject = AA000000000000000000000D;
+}
