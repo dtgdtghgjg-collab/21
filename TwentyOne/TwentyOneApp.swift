@@ -2,7 +2,7 @@ import SwiftUI
 import RealmSwift
 
 @main
-struct TwentyOneApp: App {
+struct TwentyOneApp: SwiftUI.App {
     @StateObject private var theme = AppTheme()
     init() {
         var config = Realm.Configuration.defaultConfiguration
