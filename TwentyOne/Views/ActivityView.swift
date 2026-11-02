@@ -4,7 +4,7 @@ import RealmSwift
 struct ActivityView: View {
     @ObservedResults(HistoryEntry.self, sortDescriptor: SortDescriptor(keyPath: "date", ascending: false)) var entries
     var body: some View {
-        List {
+        SwiftUI.List {
             Section("Теплокарта (год)") {
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(10), spacing: 2), count: 53), spacing: 2) {
                     ForEach(0..<371, id: \.self) { offset in

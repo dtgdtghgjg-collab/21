@@ -8,7 +8,7 @@ struct StatsSkillsView: View {
     @State private var newSkillName = ""
     var user: User? { users.first }
     var body: some View {
-        List {
+        SwiftUI.List {
             if let user = user {
                 ForEach(user.attributes, id: \.id) { attr in
                     DisclosureGroup {

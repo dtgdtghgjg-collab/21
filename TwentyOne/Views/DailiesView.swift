@@ -21,7 +21,7 @@ struct DailiesView: View {
     var regularDailies: [Daily] { dailies.filter { !$0.isRandomDaily } }
     var body: some View {
         NavigationStack {
-            List {
+            SwiftUI.List {
                 Section("Сон и вода") {
                     if let settings = settings {
                         Toggle("Трекер сна", isOn: Binding(get: { settings.sleepEnabled }, set: { v in updateSettings { s in s.sleepEnabled = v } }))

@@ -9,7 +9,7 @@ struct MusicSettingsView: View {
     var settings: AppSettings? { settingsList.first }
     let tabNames = ["Профиль", "Дейлики", "Календарь", "Предметы", "Боссы"]
     var body: some View {
-        List {
+        SwiftUI.List {
             Section("Общие") {
                 Toggle("Фоновая музыка", isOn: Binding(get: { settings?.musicEnabled ?? false }, set: { v in update { $0.musicEnabled = v } }))
                 Toggle("Зацикливать отрезок", isOn: Binding(get: { settings?.musicLoop ?? true }, set: { v in update { $0.musicLoop = v } }))

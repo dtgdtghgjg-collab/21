@@ -22,7 +22,7 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            SwiftUI.List {
                 Section {
                     HStack {
                         avatarView

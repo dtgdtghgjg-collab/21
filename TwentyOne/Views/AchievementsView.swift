@@ -4,7 +4,7 @@ import RealmSwift
 struct AchievementsView: View {
     @ObservedResults(AppSettings.self) var settingsList
     var body: some View {
-        List {
+        SwiftUI.List {
             ForEach(achievementDefinitions, id: \.id) { def in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(def.title)
