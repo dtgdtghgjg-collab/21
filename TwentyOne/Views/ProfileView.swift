@@ -19,6 +19,14 @@ struct ProfileView: View {
     var user: User? {
         users.first
     }
+    var xpText: String {
+        guard let user = user else { return "" }
+        return "XP: \(user.xp) / \(User.xpForNextLevel(user.level))"
+    }
+    var xpProgressTotal: Double {
+        guard let user = user else { return 1 }
+        return Double(max(User.xpForNextLevel(user.level), 1))
+    }
 
     var body: some View {
         NavigationStack {
@@ -79,8 +87,8 @@ struct ProfileView: View {
                     Section("Уровень и баланс") {
                         Text("Уровень: " + String(user.level))
                         Text("Песеты: " + String(user.pesetas) + " P")
-                        Text("XP: " + String(user.xp) + " / " + String(User.xpForNextLevel(user.level)))
-                        ProgressView(value: Double(user.xp), total: Double(max(User.xpForNextLevel(user.level), 1)))
+                        Text(xpText)
+                        ProgressView(value: Double(user.xp), total: xpProgressTotal)
                         if user.pesetas < 0 {
                             Text("ДОЛГ: баланс ниже нуля").foregroundStyle(.red)
                             Text(debtRemainingText(user)).foregroundStyle(.red)
@@ -240,7 +248,7 @@ struct ProfileView: View {
             let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("avatar.jpg")
             guard let url = url else { return }
             try? data.write(to: url)
-            guard let realm = try? Realm(), let user = user else { return }
+            guard let realm = try? await Realm(), let user = user else { return }
             try? realm.write {
                 user.avatarPath = url.path
             }
