@@ -4,6 +4,7 @@ struct ContentView: View {
     @EnvironmentObject var theme: AppTheme
     @State private var tab = 0
     @State private var showAI = false
+    @State private var showSplash = true
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             TabView(selection: $tab) {
@@ -22,5 +23,8 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showAI) { AIAssistantView() }
         .onOpenURL { url in _ = Json21Service.importFile(url) }
+        .onAppear { MusicService.shared.play(for: tab) }
+        .onChange(of: tab) { _, newTab in MusicService.shared.play(for: newTab) }
+        .overlay { if showSplash { SplashView(isShowing: $showSplash) } }
     }
 }

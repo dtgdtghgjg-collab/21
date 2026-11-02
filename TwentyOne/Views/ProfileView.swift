@@ -53,6 +53,11 @@ struct ProfileView: View {
                         AchievementsView()
                     }
                 }
+                Section("Музыка") {
+                    NavigationLink("Музыка для вкладок") {
+                        MusicSettingsView()
+                    }
+                }
                 Section("Оформление") {
                     Toggle("Тёмная тема", isOn: Binding(get: { theme.isDark }, set: { theme.isDark = $0 }))
                     Picker("Акцент", selection: Binding(get: { theme.accentName }, set: { theme.accentName = $0 })) {
