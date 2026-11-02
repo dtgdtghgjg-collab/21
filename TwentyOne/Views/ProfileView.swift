@@ -31,21 +31,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             SwiftUI.List {
-                Section {
-                    HStack {
-                        avatarView
-                        VStack(alignment: .leading) {
-                            TextField("Имя", text: $name)
-                            TextField("Телефон", text: $phone)
-                        }
-                    }
-                    Button("Сохранить профиль") {
-                        saveProfile()
-                    }
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        Text("Выбрать аватар")
-                    }
-                }
+                headerSection
                 Section("Характеристики и навыки") {
                     NavigationLink("Характеристики и навыки") {
                         StatsSkillsView()
@@ -66,45 +52,10 @@ struct ProfileView: View {
                         MusicSettingsView()
                     }
                 }
-                Section("Оформление") {
-                    Toggle("Тёмная тема", isOn: Binding(get: { theme.isDark }, set: { theme.isDark = $0 }))
-                    Picker("Акцент", selection: Binding(get: { theme.accentName }, set: { theme.accentName = $0 })) {
-                        Text("Синий").tag("blue")
-                        Text("Красный").tag("red")
-                        Text("Зелёный").tag("green")
-                        Text("Фиолетовый").tag("purple")
-                        Text("Оранжевый").tag("orange")
-                    }
-                    PhotosPicker(selection: $selectedWallpaper, matching: .images) {
-                        Text(theme.wallpaperPath.isEmpty ? "Выбрать обои" : "Сменить обои")
-                    }
-                    Toggle("Обои на всех экранах", isOn: Binding(get: { theme.wallpaperAllScreens }, set: { theme.wallpaperAllScreens = $0 }))
-                    if !theme.wallpaperPath.isEmpty {
-                        Button("Убрать обои") { theme.wallpaperPath = "" }
-                    }
-                }
+                appearanceSection
                 if let user = user {
-                    Section("Уровень и баланс") {
-                        Text("Уровень: \(user.level)")
-                        Text("Песеты: \(user.pesetas) P")
-                        Text(xpText)
-                        ProgressView(value: Double(user.xp), total: xpProgressTotal)
-                        if user.pesetas < 0 {
-                            Text("ДОЛГ: баланс ниже нуля").foregroundStyle(.red)
-                            Text(debtRemainingText(user)).foregroundStyle(.red)
-                            Text(user.inventory.contains(where: { $0.uniqueFeature == "death_insurance" }) ? "Страховка от смерти: есть, отменит один вайп" : "Страховки от смерти нет").font(.caption)
-                        }
-
-                    }
-                    Section("Заём") {
-                        if user.loanAmount > 0 {
-                            Text("Активный заём: \(user.loanAmount) P к возврату")
-                            if let due = user.loanDueDate { Text("Срок возврата: \(due.formatted(date: .abbreviated, time: .omitted))") }
-                            Button("Вернуть заём") { repayLoan() }.disabled(user.pesetas < user.loanAmount)
-                        } else {
-                            if user.level < 5 { Text("Заём открывается с 5 уровня") } else { Text("500 P сейчас, вернуть 550 P через 7 дней"); Button("Взять в долг 500 P") { takeLoan() } }
-                        }
-                    }
+                    levelBalanceSection(user)
+                    loanSection(user)
                     Section("Полный профиль") {
                         TextField("О себе", text: $about)
                         TextField("Цели", text: $goals)
@@ -113,11 +64,7 @@ struct ProfileView: View {
                     }
                     Section("Кастомные поля") {
                         ForEach(user.customFields, id: .key) { field in
-                            HStack {
-                                Text(field.key)
-                                Spacer()
-                                Text(field.value)
-                            }
+                            fieldRow(field)
                         }
                         .onDelete { indexSet in
                             deleteFields(at: indexSet)
@@ -152,6 +99,106 @@ struct ProfileView: View {
             .alert("Новый уровень!", isPresented: $showLevelUp) {
                 Button("OK", role: .cancel) {}
             }
+        }
+    }
+
+    @ViewBuilder
+    private var headerSection: some View {
+        Section {
+            HStack {
+                avatarView
+                VStack(alignment: .leading) {
+                    TextField("Имя", text: $name)
+                    TextField("Телефон", text: $phone)
+                }
+            }
+            Button("Сохранить профиль") {
+                saveProfile()
+            }
+            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                Text("Выбрать аватар")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var appearanceSection: some View {
+        Section("Оформление") {
+            Toggle("Тёмная тема", isOn: Binding(get: { theme.isDark }, set: { theme.isDark = $0 }))
+            Picker("Акцент", selection: Binding(get: { theme.accentName }, set: { theme.accentName = $0 })) {
+                Text("Синий").tag("blue")
+                Text("Красный").tag("red")
+                Text("Зелёный").tag("green")
+                Text("Фиолетовый").tag("purple")
+                Text("Оранжевый").tag("orange")
+            }
+            PhotosPicker(selection: $selectedWallpaper, matching: .images) {
+                Text(theme.wallpaperPath.isEmpty ? "Выбрать обои" : "Сменить обои")
+            }
+            Toggle("Обои на всех экранах", isOn: Binding(get: { theme.wallpaperAllScreens }, set: { theme.wallpaperAllScreens = $0 }))
+            if !theme.wallpaperPath.isEmpty {
+                Button("Убрать обои") { theme.wallpaperPath = "" }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func levelBalanceSection(_ user: User) -> some View {
+        Section("Уровень и баланс") {
+            Text("Уровень: \(user.level)")
+            Text("Песеты: \(user.pesetas) P")
+            Text(xpText)
+            ProgressView(value: Double(user.xp), total: xpProgressTotal)
+            if user.pesetas < 0 {
+                Text("ДОЛГ: баланс ниже нуля").foregroundStyle(.red)
+                Text(debtRemainingText(user)).foregroundStyle(.red)
+                Text(debtInsuranceText(user)).font(.caption)
+            }
+        }
+    }
+
+    private func debtInsuranceText(_ user: User) -> String {
+        user.inventory.contains(where: { $0.uniqueFeature == "death_insurance" }) ? "Страховка от смерти: есть, отменит один вайп" : "Страховки от смерти нет"
+    }
+
+    @ViewBuilder
+    private func loanSection(_ user: User) -> some View {
+        Section("Заём") {
+            if user.loanAmount > 0 {
+                Text("Активный заём: \(user.loanAmount) P к возврату")
+                if let due = user.loanDueDate { Text("Срок возврата: \(due.formatted(date: .abbreviated, time: .omitted))") }
+                Button("Вернуть заём") { repayLoan() }.disabled(user.pesetas < user.loanAmount)
+            } else {
+                if user.level < 5 { Text("Заём открывается с 5 уровня") } else { Text("500 P сейчас, вернуть 550 P через 7 дней"); Button("Взять в долг 500 P") { takeLoan() } }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func customFieldsSection(_ user: User) -> some View {
+        Section("Кастомные поля") {
+            ForEach(user.customFields, id: \.key) { field in
+                fieldRow(field)
+            }
+            .onDelete { indexSet in
+                deleteFields(at: indexSet)
+            }
+            HStack {
+                TextField("Ключ", text: $newKey)
+                TextField("Значение", text: $newValue)
+                Button("Добавить") {
+                    addCustomField()
+                }
+                .disabled(newKey.isEmpty)
+            }
+        }
+    }
+
+    private func fieldRow(_ field: KeyValue) -> some View {
+        HStack {
+            Text(field.key)
+            Spacer()
+            Text(field.value)
         }
     }
 
