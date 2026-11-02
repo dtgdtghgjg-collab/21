@@ -32,36 +32,12 @@ struct ProfileView: View {
         NavigationStack {
             SwiftUI.List {
                 headerSection
-                Section("Характеристики и навыки") {
-                    NavigationLink("Характеристики и навыки") {
-                        StatsSkillsView()
-                    }
-                }
-                Section("История") {
-                    NavigationLink("История и активность") {
-                        ActivityView()
-                    }
-                }
-                Section("Достижения") {
-                    NavigationLink("Достижения") {
-                        AchievementsView()
-                    }
-                }
-                Section("Музыка") {
-                    NavigationLink("Музыка для вкладок") {
-                        MusicSettingsView()
-                    }
-                }
+                linksSection
                 appearanceSection
                 if let user = user {
                     levelBalanceSection(user)
                     loanSection(user)
-                    Section("Полный профиль") {
-                        TextField("О себе", text: $about)
-                        TextField("Цели", text: $goals)
-                        TextField("Интересы", text: $interests)
-                        Button("Сохранить подробности") { saveProfile() }
-                    }
+                    profileDetailsSection
                     Section("Кастомные поля") {
                         ForEach(user.customFields, id: .key) { field in
                             fieldRow(field)
@@ -199,6 +175,40 @@ struct ProfileView: View {
             Text(field.key)
             Spacer()
             Text(field.value)
+        }
+    }
+
+    @ViewBuilder
+    private var linksSection: some View {
+        Section("Характеристики и навыки") {
+            NavigationLink("Характеристики и навыки") {
+                StatsSkillsView()
+            }
+        }
+        Section("История") {
+            NavigationLink("История и активность") {
+                ActivityView()
+            }
+        }
+        Section("Достижения") {
+            NavigationLink("Достижения") {
+                AchievementsView()
+            }
+        }
+        Section("Музыка") {
+            NavigationLink("Музыка для вкладок") {
+                MusicSettingsView()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var profileDetailsSection: some View {
+        Section("Полный профиль") {
+            TextField("О себе", text: $about)
+            TextField("Цели", text: $goals)
+            TextField("Интересы", text: $interests)
+            Button("Сохранить подробности") { saveProfile() }
         }
     }
 
