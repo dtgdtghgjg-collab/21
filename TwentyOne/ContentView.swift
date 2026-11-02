@@ -21,5 +21,6 @@ struct ContentView: View {
             .padding(.trailing, 16).padding(.bottom, 90)
         }
         .sheet(isPresented: $showAI) { AIAssistantView() }
+        .onOpenURL { url in _ = Json21Service.importFile(url) }
     }
 }

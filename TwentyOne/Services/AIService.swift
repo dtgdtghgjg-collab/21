@@ -1,0 +1,75 @@
+import Foundation
+import RealmSwift
+
+struct AIService {
+    static func characterStatsText() -> String {
+        guard let realm = try? Realm(), let user = realm.objects(User.self).first else { return "Профиль не создан." }
+        var text = "Уровень " + String(user.level) + ", XP " + String(user.xp) + ", песеты " + String(user.pesetas) + ". Характеристики: "
+        for attr in user.attributes { text += attr.name + " " + String(attr.total) + " ("; for sub in attr.subAttributes { text += sub.name + " " + String(sub.value) + "; " }; text += "); " }
+        text += "Навыки: "
+        for skill in user.skills { text += skill.name + (skill.isPassive ? " (пассивный); " : "; ") }
+        return text
+    }
+    static func itemDetailsText(name: String) -> String {
+        guard let realm = try? Realm(), let user = realm.objects(User.self).first else { return "Профиль не создан." }
+        let lower = name.lowercased()
+        for item in user.inventory where item.name.lowercased().contains(lower) {
+            return item.name + " [" + item.rank + "], слот " + item.slot + ", " + String(item.costPesetas) + " P, " + String(item.costXp) + " XP, " + item.itemDescription
+        }
+        return "Предмет не найден: " + name
+    }
+    static func evaluateTaskText(description: String) -> String {
+        let xp = 10 + min(description.count / 5, 90)
+        return "Предлагаемая ценность: " + String(xp) + " XP, " + String(xp * 5) + " P. Это предложение, финально решаете вы."
+    }
+    static func activeBossText() -> String {
+        guard let realm = try? Realm() else { return "Боссов нет." }
+        for boss in realm.objects(Boss.self) where !boss.isDefeated {
+            return boss.name + " [" + boss.rank + "], HP " + String(boss.hp) + " / " + String(boss.maxHp) + ", награда " + String(boss.rewardsPesetas) + " P, " + String(boss.rewardsXp) + " XP"
+        }
+        return "Все боссы побеждены."
+    }
+    static func toolContext(for message: String) -> String {
+        let lower = message.lowercased()
+        if lower.contains("стат") { return characterStatsText() }
+        if lower.contains("недел") { return HistoryService.weeklySummary() }
+        if lower.contains("босс") { return activeBossText() }
+        if lower.contains("оцени") { return evaluateTaskText(description: message) }
+        if lower.contains("предмет") {
+            guard let realm = try? Realm(), let user = realm.objects(User.self).first else { return "Профиль не создан." }
+            for item in user.inventory where lower.contains(item.name.lowercased()) { return itemDetailsText(name: item.name) }
+            var list = "Предметы: "
+            for item in user.inventory { list += item.name + " [" + item.rank + "]; " }
+            return list
+        }
+        return ""
+    }
+    static func fallbackAnswer(for message: String) -> String {
+        let ctx = toolContext(for: message)
+        if ctx.isEmpty { return "Ollama недоступна, работает локальный калькулятор. Спросите про статы, босса, предмет или оценку дейлика." }
+        return "Ollama недоступна, локальный ответ: " + ctx
+    }
+    static func askOllama(prompt: String, host: String, model: String) async -> String? {
+        if host.isEmpty { return nil }
+        var base = host
+        if !base.hasPrefix("http") { base = "http://" + base + ":11434" }
+        guard let url = URL(string: base + "/api/generate") else { return nil }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["model": model, "prompt": prompt, "stream": false]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let response = json["response"] as? String { return response }
+        } catch { return nil }
+        return nil
+    }
+    static func answer(message: String, host: String, model: String = "qwen2.5:8b-instruct") async -> String {
+        let ctx = toolContext(for: message)
+        let prompt = ctx.isEmpty ? message : "Контекст из игры: " + ctx + ". Вопрос игрока: " + message
+        if let reply = await askOllama(prompt: prompt, host: host, model: model) { return reply }
+        return fallbackAnswer(for: message)
+    }
+}

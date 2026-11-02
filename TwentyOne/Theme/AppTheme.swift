@@ -16,4 +16,11 @@ final class AppTheme: ObservableObject {
             } else { Color(UIColor.systemBackground).ignoresSafeArea() }
         }
     }
+    var mainBackground: some View {
+        ZStack {
+            if !wallpaperPath.isEmpty, let ui = UIImage(contentsOfFile: wallpaperPath) {
+                Image(uiImage: ui).resizable().scaledToFill().ignoresSafeArea()
+            } else { Color(UIColor.systemBackground).ignoresSafeArea() }
+        }
+    }
 }
