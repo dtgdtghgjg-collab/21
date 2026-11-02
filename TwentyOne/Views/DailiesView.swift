@@ -25,25 +25,25 @@ struct DailiesView: View {
                 Section("Сон и вода") {
                     if let settings = settings {
                         Toggle("Трекер сна", isOn: Binding(get: { settings.sleepEnabled }, set: { v in updateSettings { s in s.sleepEnabled = v } }))
-                        if settings.sleepEnabled { Stepper("Сон: " + String(format: "%.1f", settings.sleepHours) + " ч (цель 7)", value: Binding(get: { settings.sleepHours }, set: { v in updateSettings { s in s.sleepHours = v } }), in: 0...24, step: 0.5) }
+                        if settings.sleepEnabled { Stepper("Сон: \(String(format: "%.1f", settings.sleepHours)) ч (цель 7)", value: Binding(get: { settings.sleepHours }, set: { v in updateSettings { s in s.sleepHours = v } }), in: 0...24, step: 0.5) }
                         Toggle("Трекер воды", isOn: Binding(get: { settings.waterEnabled }, set: { v in updateSettings { s in s.waterEnabled = v } }))
-                        if settings.waterEnabled { Stepper("Вода: " + String(format: "%.1f", settings.waterLiters) + " л (цель 1.5)", value: Binding(get: { settings.waterLiters }, set: { v in updateSettings { s in s.waterLiters = v } }), in: 0...5, step: 0.25) }
-                        Text("Множитель XP: x" + String(format: "%.1f", sleepWaterMultiplier()))
+                        if settings.waterEnabled { Stepper("Вода: \(String(format: "%.1f", settings.waterLiters)) л (цель 1.5)", value: Binding(get: { settings.waterLiters }, set: { v in updateSettings { s in s.waterLiters = v } }), in: 0...5, step: 0.25) }
+                        Text("Множитель XP: x\(String(format: "%.1f", sleepWaterMultiplier()))")
                     }
                 }
                 Section("Задание дня") {
                     if let daily = randomDaily {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(daily.title)
-                            Text("Награда: " + String(daily.xpReward) + " XP, " + String(daily.pesetasReward) + " P").font(.caption).foregroundStyle(.secondary)
+                            Text("Награда: \(daily.xpReward) XP, \(daily.pesetasReward) P").font(.caption).foregroundStyle(.secondary)
                             Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.disabled(completedToday(daily))
                         }
                     } else { Button("Сгенерировать") { ensureRandomDaily() } }
                 }
                 Section("Создать дейлик") {
                     TextField("Название", text: $newTitle)
-                    Stepper("XP: " + String(xpReward), value: $xpReward, in: 0...1000, step: 5)
-                    Stepper("Песеты: " + String(pesetasReward), value: $pesetasReward, in: 0...10000, step: 10)
+                    Stepper("XP: \(xpReward)", value: $xpReward, in: 0...1000, step: 5)
+                    Stepper("Песеты: \(pesetasReward)", value: $pesetasReward, in: 0...10000, step: 10)
                     TextField("Дедлайн (ЧЧ:ММ)", text: $deadlineTime)
                     Picker("Подхарактеристика", selection: $selectedSubId) {
                         Text("Без подхарактеристики").tag(nil as String?)
@@ -61,9 +61,9 @@ struct DailiesView: View {
                     ForEach(regularDailies, id: \.id) { daily in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(daily.title)
-                            if let name = subName(daily) { Text("Подхарактеристика: " + name).font(.caption).foregroundStyle(.secondary) }
-                            Text("Награда: " + String(daily.xpReward) + " XP, " + String(daily.pesetasReward) + " P").font(.caption).foregroundStyle(.secondary)
-                            Text("Дедлайн: " + daily.deadlineTime + " · Стрик: " + String(daily.streak) + " дн. · Пропусков подряд: " + String(daily.consecutiveMisses)).font(.caption).foregroundStyle(.secondary)
+                            if let name = subName(daily) { Text("Подхарактеристика: \(name)").font(.caption).foregroundStyle(.secondary) }
+                            Text("Награда: \(daily.xpReward) XP, \(daily.pesetasReward) P").font(.caption).foregroundStyle(.secondary)
+                            Text("Дедлайн: \(daily.deadlineTime) · Стрик: \(daily.streak) дн. · Пропусков подряд: \(daily.consecutiveMisses)").font(.caption).foregroundStyle(.secondary)
                             Text("После дедлайна: награда /2, стрик не растёт, +1 к подхарактеристике сохраняется").font(.caption).foregroundStyle(.secondary)
                             Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.disabled(completedToday(daily))
                             Button(focusButtonText(daily)) { toggleFocus(daily) }.disabled(completedToday(daily))
@@ -158,7 +158,8 @@ struct DailiesView: View {
         guard let start = daily.focusStartedAt else { return "Фокус 25 мин" }
         let elapsed = Int(Date().timeIntervalSince(start))
         if elapsed >= 1500 { return "Завершить фокус и выполнить" }
-        return "Фокус: осталось " + String(25 - elapsed / 60) + " мин"
+        let remainingMinutes: Int = 25 - elapsed / 60
+        return "Фокус: осталось \(remainingMinutes) мин"
     }
     func toggleFocus(_ daily: Daily) {
         guard let realm = try? Realm() else { return }

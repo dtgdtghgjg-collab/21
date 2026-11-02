@@ -35,7 +35,7 @@ struct CalendarView: View {
                             if let day = item.element {
                                 Button { openForm(for: day) } label: {
                                     VStack(spacing: 2) {
-                                        Text(String(Calendar.current.component(.day, from: day))).font(.body)
+                                        Text("\(Calendar.current.component(.day, from: day))").font(.body)
                                         Circle().fill(eventsOn(day).isEmpty ? Color.clear : Color.red).frame(width: 6, height: 6)
                                     }
                                     .frame(maxWidth: .infinity, minHeight: 44)
@@ -182,7 +182,7 @@ struct CalendarView: View {
                             Text("Фестиваль").tag("festival")
                             Text("Своё").tag("custom")
                         }
-                        Stepper("Порог тревоги: " + String(newThreshold) + " дн.", value: $newThreshold, in: 1...30)
+                        Stepper("Порог тревоги: \(newThreshold) дн.", value: $newThreshold, in: 1...30)
                         Picker("Дейлик", selection: $selectedDailyId) {
                             Text("Без дейлика").tag(nil as String?)
                             ForEach(dailies, id: \.id) { daily in
@@ -241,7 +241,7 @@ struct CalendarView: View {
         let left = daysUntil(event)
         if left < 0 { return "прошло" }
         if left == 0 { return "сегодня" }
-        return "через " + String(left) + " дн."
+        return "через \(left) дн."
     }
     func alarmColor(_ event: Event) -> Color {
         let left = daysUntil(event)
@@ -255,7 +255,7 @@ struct CalendarView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.title)
-                Text(countdownText(event) + " · " + event.type).font(.caption).foregroundStyle(.secondary)
+                Text("\(countdownText(event)) · \(event.type)").font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Button("Удалить") { deleteEvent(event) }.font(.caption)

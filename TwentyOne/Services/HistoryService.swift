@@ -20,6 +20,6 @@ enum HistoryService {
         let pesetas = entries.reduce(0) { $0 + $1.pesetasDelta }
         let dailies = entries.filter { $0.kind == "daily_complete" }.count
         let bosses = entries.filter { $0.kind == "boss_defeated" }.count
-        return "Итоги недели: дейликов выполнено " + String(dailies) + ", боссов побеждено " + String(bosses) + ", XP " + String(xp) + ", песеты " + String(pesetas) + "."
+        return "Итоги недели: дейликов выполнено \(dailies), боссов побеждено \(bosses), XP \(xp), песеты \(pesetas)."
     }
 }

@@ -270,7 +270,7 @@ struct ItemsView: View {
         SwiftUI.List {
             Section(".json21") {
                 Button("Импортировать .json21") { showImporter = true }
-                if let importMessage = importMessage { Text("Импортировано: " + importMessage) }
+                if let importMessage = importMessage { Text("Импортировано: \(importMessage)") }
                 if let exportURL = exportURL { ShareLink(item: exportURL) { Text("Поделиться экспортом") } }
             }
             Section("Лутбокс (1 раз в неделю)") {
@@ -280,18 +280,18 @@ struct ItemsView: View {
             Section("Экипировано") {
                 if let user = user {
                     if user.equipped.isEmpty { Text("Ничего не экипировано").font(.caption).foregroundStyle(.secondary) }
-                    ForEach(user.equipped, id: \.id) { item in Text(item.name + " (" + item.slot + ")") }
+                    ForEach(user.equipped, id: \.id) { item in Text("\(item.name) (\(item.slot))") }
                 }
             }
             Section("Мои предметы") {
                 if let user = user {
                     ForEach(user.inventory, id: \.id) { item in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(item.name + " [" + item.rank + "]")
-                            Text(item.slot + " - " + String(item.costPesetas) + " P - прочность " + String(item.durability) + "/" + String(item.maxDurability)).font(.caption).foregroundStyle(.secondary)
+                            Text("\(item.name) [\(item.rank)]")
+                            Text("\(item.slot) - \(item.costPesetas) P - прочность \(item.durability)/\(item.maxDurability)").font(.caption).foregroundStyle(.secondary)
                             HStack {
                                 Button(item.isEquipped ? "Снять" : "Экипировать") { toggleEquip(item) }
-                                Button("Переработать (+" + String(recycleValue(item)) + " P)") { recycle(item) }
+                                Button("Переработать (+\(recycleValue(item)) P)") { recycle(item) }
                                 Button("Экспорт .json21") { exportURL = Json21Service.exportItemFile(item) }
                             }.font(.caption)
                         }
@@ -304,9 +304,9 @@ struct ItemsView: View {
         SwiftUI.List {
             ForEach(marketItems(isBlack: isBlack)) { catalog in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(catalog.name + " [" + catalog.rank + "]")
-                    Text(catalog.slot + " - " + catalog.statName + " +" + String(catalog.statPoints)).font(.caption).foregroundStyle(.secondary)
-                    Text(String(catalog.pricePesetas) + " P, " + String(catalog.priceXp) + " XP").font(.caption)
+                    Text("\(catalog.name) [\(catalog.rank)]")
+                    Text("\(catalog.slot) - \(catalog.statName) +\(catalog.statPoints)").font(.caption).foregroundStyle(.secondary)
+                    Text("\(catalog.pricePesetas) P, \(catalog.priceXp) XP").font(.caption)
                     Button("Купить") { buy(catalog) }.disabled((user?.pesetas ?? 0) < catalog.pricePesetas)
                 }
             }
@@ -322,7 +322,7 @@ struct ItemsView: View {
             } else {
                 VStack(spacing: 8) {
                     Text("Черный рынок закрыт")
-                    if let next = settings?.blackMarketNextDate { Text("Следующее появление: " + next.formatted(date: .abbreviated, time: .omitted)) }
+                    if let next = settings?.blackMarketNextDate { Text("Следующее появление: \(next.formatted(date: .abbreviated, time: .omitted))") }
                     else { Text("Расписание появится после первого запуска") }
                     Text("Появляется спорадически: раз в 2 недели - 2 месяца, открыт 3 дня").font(.caption).foregroundStyle(.secondary)
                 }.padding()

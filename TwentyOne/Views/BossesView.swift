@@ -26,20 +26,20 @@ struct BossesView: View {
     }
     func bossRow(_ boss: Boss) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(boss.name + " [" + boss.rank + "]")
+            Text("\(boss.name) [\(boss.rank)]")
             if !boss.pixelArtAscii.isEmpty { Text(boss.pixelArtAscii).font(.caption).monospaced() }
-            Text("HP: " + String(boss.hp) + " / " + String(boss.maxHp)).font(.caption).foregroundStyle(.secondary)
+            Text("HP: \(boss.hp) / \(boss.maxHp)").font(.caption).foregroundStyle(.secondary)
             ProgressView(value: Double(boss.hp), total: Double(max(boss.maxHp, 1)))
-            if !boss.requiredAttributeName.isEmpty { Text("Нужно: " + boss.requiredAttributeName + " " + String(boss.requiredAttributeValue) + ", у вас " + String(attributeTotal(boss.requiredAttributeName))).font(.caption).foregroundStyle(.secondary) }
+            if !boss.requiredAttributeName.isEmpty { Text("Нужно: \(boss.requiredAttributeName) \(boss.requiredAttributeValue), у вас \(attributeTotal(boss.requiredAttributeName))").font(.caption).foregroundStyle(.secondary) }
             if isHarming(boss) { Text("Босс вредит: -20 P в день и -10% к наградам дейликов").font(.caption).foregroundStyle(.red) }
-            Text("Награда: " + String(boss.rewardsPesetas) + " P, " + String(boss.rewardsXp) + " XP").font(.caption).foregroundStyle(.secondary)
+            Text("Награда: \(boss.rewardsPesetas) P, \(boss.rewardsXp) XP").font(.caption).foregroundStyle(.secondary)
             Button("Экспорт .json21") { exportURL = Json21Service.exportBossFile(boss) }
             if let exportURL = exportURL { ShareLink(item: exportURL) { Text("Поделиться .json21") } }
             if boss.isDefeated { Text("Побеждён").foregroundStyle(.green) }
             else if !isUnlocked(boss) { Text("Закрыт: сначала победите предыдущего босса кампании").font(.caption).foregroundStyle(.secondary) }
             else if !meetsRequirement(boss) { Text("Непробиваем: не хватает атрибута").font(.caption).foregroundStyle(.orange) }
             else if isBlocked(boss) { Text("Непробиваем: сначала выполните связанный дейлик").font(.caption).foregroundStyle(.orange) }
-            else { Button(canAttackToday(boss) ? "Атаковать (урон ~" + String(playerDamage(boss)) + ")" : "Попытка сегодня уже была") { attack(boss) }.disabled(!canAttackToday(boss)) }
+            else { Button(canAttackToday(boss) ? "Атаковать (урон ~\(playerDamage(boss)))" : "Попытка сегодня уже была") { attack(boss) }.disabled(!canAttackToday(boss)) }
         }
     }
     func ensureUser() { guard let realm = try? Realm() else { return }; if realm.objects(User.self).isEmpty { try? realm.write { realm.add(User()) } } }

@@ -54,7 +54,7 @@ struct CustomItemView: View {
                     Text("Аксессуар").tag("Аксессуар")
                 }
                 TextField("Характеристика", text: $statName)
-                Stepper("Очки статов: " + String(statPoints), value: $statPoints, in: 1...10)
+                Stepper("Очки статов: \(statPoints)", value: $statPoints, in: 1...10)
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     Text(imageData == nil ? "Выбрать PNG" : "PNG выбран")
                 }
@@ -67,11 +67,11 @@ struct CustomItemView: View {
                     Text("double_xp_if_category_logic").tag("double_xp_if_category_logic")
                 }
                 TextField("Параметр (имя характеристики)", text: $perkParam)
-                Text("Цена перка: " + String(perkPrice) + " P").font(.caption).foregroundStyle(.secondary)
+                Text("Цена перка: \(perkPrice) P").font(.caption).foregroundStyle(.secondary)
             }
             Section("Цена") {
-                Text(String(pricePesetas) + " P, " + String(priceXp) + " XP")
-                Text("Баланс: " + String(user?.pesetas ?? 0) + " P, " + String(user?.xp ?? 0) + " XP").font(.caption).foregroundStyle(.secondary)
+                Text("\(pricePesetas) P, \(priceXp) XP")
+                Text("Баланс: \(user?.pesetas ?? 0) P, \(user?.xp ?? 0) XP").font(.caption).foregroundStyle(.secondary)
                 Button("Создать предмет") { createItem() }.disabled(name.isEmpty || !canAfford)
                 if created { Text("Предмет создан и добавлен в инвентарь").foregroundStyle(.green) }
             }

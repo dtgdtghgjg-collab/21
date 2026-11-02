@@ -85,8 +85,8 @@ struct ProfileView: View {
                 }
                 if let user = user {
                     Section("Уровень и баланс") {
-                        Text("Уровень: " + String(user.level))
-                        Text("Песеты: " + String(user.pesetas) + " P")
+                        Text("Уровень: \(user.level)")
+                        Text("Песеты: \(user.pesetas) P")
                         Text(xpText)
                         ProgressView(value: Double(user.xp), total: xpProgressTotal)
                         if user.pesetas < 0 {
@@ -98,8 +98,8 @@ struct ProfileView: View {
                     }
                     Section("Заём") {
                         if user.loanAmount > 0 {
-                            Text("Активный заём: " + String(user.loanAmount) + " P к возврату")
-                            if let due = user.loanDueDate { Text("Срок возврата: " + due.formatted(date: .abbreviated, time: .omitted)) }
+                            Text("Активный заём: \(user.loanAmount) P к возврату")
+                            if let due = user.loanDueDate { Text("Срок возврата: \(due.formatted(date: .abbreviated, time: .omitted))") }
                             Button("Вернуть заём") { repayLoan() }.disabled(user.pesetas < user.loanAmount)
                         } else {
                             if user.level < 5 { Text("Заём открывается с 5 уровня") } else { Text("500 P сейчас, вернуть 550 P через 7 дней"); Button("Взять в долг 500 P") { takeLoan() } }
@@ -167,7 +167,7 @@ struct ProfileView: View {
                 Circle()
                     .fill(Color.blue)
                     .frame(width: 64, height: 64)
-                    .overlay(Text(String(name.prefix(1))).foregroundStyle(.white).font(.title))
+                    .overlay(Text("\(name.prefix(1))").foregroundStyle(.white).font(.title))
             }
         }
     }
@@ -187,7 +187,10 @@ struct ProfileView: View {
     }
     func debtRemainingText(_ user: User) -> String {
         guard let seconds = DebtService.remainingSeconds(for: user) else { return "" }
-        return "До вайпа: " + String(seconds / 3600) + " ч " + String((seconds % 3600) / 60) + " мин " + String(seconds % 60) + " с"
+        let hours: Int = seconds / 3600
+        let minutes: Int = (seconds % 3600) / 60
+        let secs: Int = seconds % 60
+        return "До вайпа: \(hours) ч \(minutes) мин \(secs) с"
     }
 
     func ensureUser() {

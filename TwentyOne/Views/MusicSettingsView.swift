@@ -13,9 +13,9 @@ struct MusicSettingsView: View {
             Section("Общие") {
                 Toggle("Фоновая музыка", isOn: Binding(get: { settings?.musicEnabled ?? false }, set: { v in update { $0.musicEnabled = v } }))
                 Toggle("Зацикливать отрезок", isOn: Binding(get: { settings?.musicLoop ?? true }, set: { v in update { $0.musicLoop = v } }))
-                Text("Начало: " + String(Int(settings?.musicStartSeconds ?? 0)) + " сек")
+                Text("Начало: \(Int(settings?.musicStartSeconds ?? 0)) сек")
                 Slider(value: Binding(get: { settings?.musicStartSeconds ?? 0 }, set: { v in update { $0.musicStartSeconds = v } }), in: 0...300, step: 1)
-                Text("Конец: " + String(Int(settings?.musicEndSeconds ?? 0)) + " сек (0 = до конца)")
+                Text("Конец: \(Int(settings?.musicEndSeconds ?? 0)) сек (0 = до конца)")
                 Slider(value: Binding(get: { settings?.musicEndSeconds ?? 0 }, set: { v in update { $0.musicEndSeconds = v } }), in: 0...300, step: 1)
                 Text("Играет отрезок от начала до конца. Если конец 0, играет до конца трека. При зацикливании возвращается к началу.")
                     .font(.caption).foregroundStyle(.secondary)

@@ -4,8 +4,8 @@ import RealmSwift
 struct AIService {
     static func characterStatsText() -> String {
         guard let realm = try? Realm(), let user = realm.objects(User.self).first else { return "Профиль не создан." }
-        var text = "Уровень " + String(user.level) + ", XP " + String(user.xp) + ", песеты " + String(user.pesetas) + ". Характеристики: "
-        for attr in user.attributes { text += attr.name + " " + String(attr.total) + " ("; for sub in attr.subAttributes { text += sub.name + " " + String(sub.value) + "; " }; text += "); " }
+        var text = "Уровень \(user.level), XP \(user.xp), песеты \(user.pesetas). Характеристики: "
+        for attr in user.attributes { text += "\(attr.name) \(attr.total) ("; for sub in attr.subAttributes { text += "\(sub.name) \(sub.value); " }; text += "); " }
         text += "Навыки: "
         for skill in user.skills { text += skill.name + (skill.isPassive ? " (пассивный); " : "; ") }
         return text
@@ -14,18 +14,18 @@ struct AIService {
         guard let realm = try? Realm(), let user = realm.objects(User.self).first else { return "Профиль не создан." }
         let lower = name.lowercased()
         for item in user.inventory where item.name.lowercased().contains(lower) {
-            return item.name + " [" + item.rank + "], слот " + item.slot + ", " + String(item.costPesetas) + " P, " + String(item.costXp) + " XP, " + item.itemDescription
+            return "\(item.name) [\(item.rank)], слот \(item.slot), \(item.costPesetas) P, \(item.costXp) XP, \(item.itemDescription)"
         }
         return "Предмет не найден: " + name
     }
     static func evaluateTaskText(description: String) -> String {
         let xp = 10 + min(description.count / 5, 90)
-        return "Предлагаемая ценность: " + String(xp) + " XP, " + String(xp * 5) + " P. Это предложение, финально решаете вы."
+        return "Предлагаемая ценность: \(xp) XP, \(xp * 5) P. Это предложение, финально решаете вы."
     }
     static func activeBossText() -> String {
         guard let realm = try? Realm() else { return "Боссов нет." }
         for boss in realm.objects(Boss.self) where !boss.isDefeated {
-            return boss.name + " [" + boss.rank + "], HP " + String(boss.hp) + " / " + String(boss.maxHp) + ", награда " + String(boss.rewardsPesetas) + " P, " + String(boss.rewardsXp) + " XP"
+            return "\(boss.name) [\(boss.rank)], HP \(boss.hp) / \(boss.maxHp), награда \(boss.rewardsPesetas) P, \(boss.rewardsXp) XP"
         }
         return "Все боссы побеждены."
     }

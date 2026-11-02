@@ -16,17 +16,17 @@ struct StatsSkillsView: View {
                             HStack {
                                 Text(sub.name)
                                 Spacer()
-                                Text(String(sub.value) + " / " + String(sub.cap))
+                                Text("\(sub.value) / \(sub.cap)")
                                 Stepper("", value: Binding(get: { sub.value }, set: { updateSub(sub, to: $0) }), in: 0...sub.cap)
                             }
                         }
                         HStack {
                             TextField("Своя подхарактеристика", text: $newSubName)
-                            Stepper("Кап: " + String(newSubCap), value: $newSubCap, in: 1...100)
+                            Stepper("Кап: \(newSubCap)", value: $newSubCap, in: 1...100)
                             Button("Добавить") { addSub(to: attr) }.disabled(newSubName.isEmpty)
                         }
                     } label: {
-                        HStack { Text(attr.name); Spacer(); Text(String(attr.total) + " / 100") }
+                        HStack { Text(attr.name); Spacer(); Text("\(attr.total) / 100") }
                     }
                 }
             }
