@@ -4,7 +4,8 @@
 	classes = {};
 	objectVersion = 77;
 	objects = {
-		AA0000000000000000000001 /* TwentyOne */ = {isa = PBXFileSystemSynchronizedRootGroup; path = TwentyOne; sourceTree = "<group>"; };
+		AA0000000000000000000001 /* TwentyOne */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AA0000000000000000000011 /* Exceptions for "TwentyOne" folder in "TwentyOne" target */, ); path = TwentyOne; sourceTree = "<group>"; };
+		AA0000000000000000000011 /* Exceptions for "TwentyOne" folder in "TwentyOne" target */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, ); target = AA0000000000000000000004 /* TwentyOne */; };
 		AA0000000000000000000002 /* Products */ = {isa = PBXGroup; children = (AA0000000000000000000003 /* TwentyOne.app */); name = Products; sourceTree = "<group>"; };
 		AA0000000000000000000003 /* TwentyOne.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TwentyOne.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000004 = {isa = PBXNativeTarget; buildConfigurationList = AA000000000000000000000A; buildPhases = (AA0000000000000000000005, AA0000000000000000000006, AA0000000000000000000007, AA000000000000000000000F); fileSystemSynchronizedGroups = (AA0000000000000000000001); name = TwentyOne; packageProductDependencies = (AA0000000000000000000008); productName = TwentyOne; productReference = AA0000000000000000000003; productType = "com.apple.product-type.application"; };
