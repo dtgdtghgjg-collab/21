@@ -23,7 +23,11 @@ struct CustomItemView: View {
         default: return 3000
         }
     }
-    var pricePesetas: Int { Int(Double(rankBasePrices[rank] ?? 500) * (1.0 + 0.2 * Double(max(statPoints - 1, 0)))) + perkPrice }
+    var pricePesetas: Int {
+        let base: Double = Double(rankBasePrices[rank] ?? 500)
+        let factor: Double = 1.0 + 0.2 * Double(max(statPoints - 1, 0))
+        return Int(base * factor) + perkPrice
+    }
     var priceXp: Int { 0 }
     var canAfford: Bool { (user?.pesetas ?? 0) >= pricePesetas }
     var body: some View {

@@ -18,7 +18,14 @@ struct CatalogItem: Identifiable {
     var uniqueFeature: String = ""
     var priceMultiplier: Double = 1.0
     var imageName: String { "item_" + id }
-    var pricePesetas: Int { Int(Double(rankBasePrices[rank] ?? 4000) * (1.0 + 0.2 * Double(max(statPoints - 1, 0))) * (isPinpoon ? 4.0 : 1.0) * priceMultiplier) }
+    var pricePesetas: Int {
+        let base: Double = Double(rankBasePrices[rank] ?? 4000)
+        let extraPoints: Double = Double(max(statPoints - 1, 0))
+        let statFactor: Double = 1.0 + 0.2 * extraPoints
+        let pinpoonFactor: Double = isPinpoon ? 4.0 : 1.0
+        let total: Double = base * statFactor * pinpoonFactor * priceMultiplier
+        return Int(total)
+    }
     var priceXp: Int { pricePesetas / 5 }
 }
 
@@ -410,7 +417,9 @@ struct ItemsView: View {
         let pts = points[rank] ?? 1
         let slot = ["Голова", "Тело", "Инструмент", "Аксессуар"].randomElement() ?? "Аксессуар"
         let statName = user.attributes.flatMap { Array($0.subAttributes) }.randomElement()?.name ?? "Логика"
-        let price = Int(Double(rankBasePrices[rank] ?? 500) * (1.0 + 0.2 * Double(max(pts - 1, 0))))
+        let lootBase: Double = Double(rankBasePrices[rank] ?? 500)
+        let lootFactor: Double = 1.0 + 0.2 * Double(max(pts - 1, 0))
+        let price: Int = Int(lootBase * lootFactor)
         let item = Item()
         item.name = "Трофей из лутбокса (" + rank + ")"
         item.rank = rank
