@@ -90,6 +90,7 @@ struct DailiesView: View {
                     .onDelete { offsets in deleteDailies(at: offsets) }
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Дейлики")
             .onAppear { ensureUser(); ensureSettings(); applyMissPenalties(); ensureRandomDaily() }
             .alert("Новый уровень!", isPresented: $showLevelUp) { Button("OK", role: .cancel) {} }

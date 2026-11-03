@@ -11,16 +11,19 @@ struct BossesView: View {
     @State private var lastDamage = 0
     @State private var exportURL: URL?
     var user: User? { users.first }
+    var profilePower: Int { guard let user = user else { return 0 }; return user.attributes.reduce(0) { $0 + $1.total } + user.equipped.reduce(0) { $0 + $1.statModifiers.reduce(0) { $0 + $1.value } } }
+    var currentBoss: Boss? { bosses.filter { !$0.isDefeated && !$0.departed }.sorted { ($0.orderIndex ?? Int.max) < ($1.orderIndex ?? Int.max) }.first }
     var campaignBosses: [Boss] { bosses.filter { $0.orderIndex != nil && !$0.departed }.sorted { ($0.orderIndex ?? 0) < ($1.orderIndex ?? 0) } }
     var freeBosses: [Boss] { bosses.filter { $0.orderIndex == nil && !$0.departed } }
     var body: some View {
         NavigationStack {
             SwiftUI.List {
-                Section("Кампания") { ForEach(campaignBosses, id: \.id) { boss in bossRow(boss) } }
-                Section("Свободные и ивентовые") { ForEach(freeBosses, id: \.id) { boss in bossRow(boss) } }
+                Section("Текущий босс") { if let boss = currentBoss { bossRow(boss) } else { Text("Все боссы побеждены") } }
+                Section("Сила профиля") { Text("Суммарная сила: " + String(profilePower)); Text("Уровень: " + String(user?.level ?? 1)); Text("HP, требование и награды босса пересчитываются под эту силу при его появлении") }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Боссы")
-            .onAppear { ensureUser(); seedBosses(); processEventBosses() }
+            .onAppear { ensureUser(); ensureCurrentBoss(); processEventBosses() }
             .alert("Босс побеждён!", isPresented: $showVictory) { Button("OK", role: .cancel) {} }
         }
     }
@@ -40,6 +43,19 @@ struct BossesView: View {
             else if !meetsRequirement(boss) { Text("Непробиваем: не хватает атрибута").font(.caption).foregroundStyle(.orange) }
             else if isBlocked(boss) { Text("Непробиваем: сначала выполните связанный дейлик").font(.caption).foregroundStyle(.orange) }
             else { Button(canAttackToday(boss) ? "Атаковать (урон ~\(playerDamage(boss)))" : "Попытка сегодня уже была") { attack(boss) }.disabled(!canAttackToday(boss)) }
+        }
+    }
+    func ensureCurrentBoss() {
+        RealmStore.write { realm in
+            guard let liveUser = RealmStore.user(in: realm) else { return }
+            let active = realm.objects(Boss.self).filter { !$0.isDefeated && !$0.departed }.sorted { ($0.orderIndex ?? Int.max) < ($1.orderIndex ?? Int.max) }
+            let power = liveUser.attributes.reduce(0) { $0 + $1.total } + liveUser.equipped.reduce(0) { $0 + $1.statModifiers.reduce(0) { $0 + $1.value } }
+            let hp = max(10, power) * 5 + liveUser.level * 50
+            let strongest = liveUser.attributes.max { $0.total < $1.total }
+            if let boss = active.first { if boss.lastAttemptDate == nil { boss.maxHp = hp; boss.hp = hp; boss.requiredAttributeName = strongest?.name ?? ""; boss.requiredAttributeValue = max(0, (strongest?.total ?? 0) / 2); boss.rewardsPesetas = hp / 2; boss.rewardsXp = hp / 10 }; return }
+            let defeated = realm.objects(Boss.self).filter { $0.isDefeated }.count
+            let names = ["Хранитель утра", "Страж прокрастинации", "Тень лени", "Кузнец воли", "Король откладывания", "Титан рутины"]
+            let boss = Boss(); boss.name = names[defeated % names.count]; boss.rank = liveUser.level >= 10 ? "A" : (liveUser.level >= 5 ? "C" : "F"); boss.hp = hp; boss.maxHp = hp; boss.requiredAttributeName = strongest?.name ?? ""; boss.requiredAttributeValue = max(0, (strongest?.total ?? 0) / 2); boss.rewardsPesetas = hp / 2; boss.rewardsXp = hp / 10; boss.orderIndex = defeated + 1; realm.add(boss)
         }
     }
     func ensureUser() { guard let realm = try? Realm() else { return }; if realm.objects(User.self).isEmpty { try? realm.write { realm.add(User()) } } }

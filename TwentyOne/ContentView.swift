@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var showSplash = true
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
+            theme.background(for: tab)
             TabView(selection: $tab) {
                 ProfileView().tabItem { Label("Профиль", systemImage: "person.crop.circle") }.tag(0)
                 DailiesView().tabItem { Label("Дейлики", systemImage: "checklist") }.tag(1)
@@ -14,7 +15,7 @@ struct ContentView: View {
                 ItemsView().tabItem { Label("Предметы", systemImage: "backpack") }.tag(3)
                 BossesView().tabItem { Label("Боссы", systemImage: "shield") }.tag(4)
             }
-            .background(theme.background(for: tab))
+            .scrollContentBackground(.hidden)
             Button { showAI = true } label: {
                 Image(systemName: "sparkles").font(.title2).padding(16)
                     .background(Circle().fill(theme.accentColor)).foregroundStyle(.white).shadow(radius: 4)

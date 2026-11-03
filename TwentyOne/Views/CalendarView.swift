@@ -74,6 +74,7 @@ struct CalendarView: View {
                 }
                 .padding()
             }
+            .background(Color.clear)
             .navigationTitle("Календарь")
             .sheet(isPresented: $showEventForm) {
                 NavigationStack {

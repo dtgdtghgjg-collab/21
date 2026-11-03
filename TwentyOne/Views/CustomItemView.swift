@@ -16,6 +16,7 @@ struct CustomItemView: View {
     @State private var imageData: Data?
     @State private var created = false
     var user: User? { users.first }
+    var allStatNames: [String] { let subs = user?.attributes.flatMap { Array($0.subAttributes).map { $0.name } } ?? []; let base = ["Логика", "Память", "Скорость мышления", "Критическое мышление", "Креативность", "Дисциплина", "Мотивация", "Физическая сила", "Выносливость", "Реакция", "Точность", "Интуиция"]; return Array(Set(base + subs)).sorted() }
     var perkPrice: Int {
         switch perkEffect {
         case "double_xp": return 5000
@@ -53,7 +54,9 @@ struct CustomItemView: View {
                     Text("Инструмент").tag("Инструмент")
                     Text("Аксессуар").tag("Аксессуар")
                 }
-                TextField("Характеристика", text: $statName)
+                Picker("Характеристика", selection: $statName) {
+                    ForEach(allStatNames, id: \.self) { stat in Text(stat).tag(stat) }
+                }
                 Stepper("Очки статов: \(statPoints)", value: $statPoints, in: 1...10)
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     Text(imageData == nil ? "Выбрать PNG" : "PNG выбран")
@@ -66,7 +69,9 @@ struct CustomItemView: View {
                     Text("double_pesetas").tag("double_pesetas")
                     Text("double_xp_if_category_logic").tag("double_xp_if_category_logic")
                 }
-                TextField("Параметр (имя характеристики)", text: $perkParam)
+                Picker("Параметр", selection: $perkParam) {
+                    ForEach(allStatNames, id: \.self) { stat in Text(stat).tag(stat) }
+                }
                 Text("Цена перка: \(perkPrice) P").font(.caption).foregroundStyle(.secondary)
             }
             Section("Цена") {

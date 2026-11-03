@@ -245,6 +245,8 @@ struct ItemsView: View {
     @State private var showImporter = false
     @State private var importMessage: String?
     @State private var exportURL: URL?
+    @State private var lootboxResult: CatalogItem?
+    @State private var showLootboxResult = false
     var user: User? { users.first }
     var settings: AppSettings? { settingsList.first }
     var body: some View {
@@ -262,6 +264,7 @@ struct ItemsView: View {
                 else { blackMarketView }
             }
             .navigationTitle("Предметы")
+            .alert("Из лутбокса выпало", isPresented: $showLootboxResult, presenting: lootboxResult) { _ in Button("Забрать", role: .cancel) {} } message: { catalog in Text(catalog.name + " [" + catalog.rank + "] - " + catalog.slot + ": " + catalog.statName + " +" + String(catalog.statPoints)) }
             .onAppear { ensureUser(); ensureSettings(); ensureFirstItem(); ensureBlackMarketSchedule() }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [UTType(filenameExtension: "json21") ?? .json]) { result in if let url = try? result.get() { importMessage = Json21Service.importFile(url) } }
         }
@@ -280,14 +283,14 @@ struct ItemsView: View {
             Section("Экипировано") {
                 if let user = user {
                     if user.equipped.isEmpty { Text("Ничего не экипировано").font(.caption).foregroundStyle(.secondary) }
-                    ForEach(user.equipped, id: \.id) { item in Text("\(item.name) (\(item.slot))") }
+                    else { Text(user.equipped.map { $0.name + " (" + $0.slot + ")" }.joined(separator: ", ")) }
                 }
             }
             Section("Мои предметы") {
                 if let user = user {
                     ForEach(user.inventory, id: \.id) { item in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("\(item.name) [\(item.rank)]")
+                            HStack { Image(systemName: itemIcon(item.slot)).foregroundStyle(.orange); Text(item.name + " [" + item.rank + "]" + (item.isEquipped ? " - экипировано" : "")) }
                             Text("\(item.slot) - \(item.costPesetas) P - прочность \(item.durability)/\(item.maxDurability)").font(.caption).foregroundStyle(.secondary)
                             HStack {
                                 Button(item.isEquipped ? "Снять" : "Экипировать") { toggleEquip(item) }
@@ -299,18 +302,20 @@ struct ItemsView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
     }
     func marketList(isBlack: Bool) -> some View {
         SwiftUI.List {
             ForEach(marketItems(isBlack: isBlack)) { catalog in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(catalog.name) [\(catalog.rank)]")
+                    HStack { Image(systemName: itemIcon(catalog.slot)).foregroundStyle(.orange); Text("\(catalog.name) [\(catalog.rank)]") }
                     Text("\(catalog.slot) - \(catalog.statName) +\(catalog.statPoints)").font(.caption).foregroundStyle(.secondary)
                     Text("\(catalog.pricePesetas) P, \(catalog.priceXp) XP").font(.caption)
                     Button("Купить") { buy(catalog) }.disabled((user?.pesetas ?? 0) < catalog.pricePesetas)
                 }
             }
         }
+        .scrollContentBackground(.hidden)
     }
     var blackMarketView: some View {
         Group {
@@ -418,24 +423,21 @@ struct ItemsView: View {
     }
     func openLootboxLive(user: User, settings s: AppSettings, realm: Realm) {
         if !lootboxAvailable() { return }
-        let rank = rollRank(level: user.level)
-        let points: [String: Int] = ["F": 1, "E": 1, "D": 2, "C": 2, "B": 3, "A": 3, "S": 4, "SS": 5, "SSS": 6, "R": 8]
-        let pts = points[rank] ?? 1
-        let slot = ["Голова", "Тело", "Инструмент", "Аксессуар"].randomElement() ?? "Аксессуар"
-        let statName = user.attributes.flatMap { Array($0.subAttributes) }.randomElement()?.name ?? "Логика"
-        let lootBase: Double = Double(rankBasePrices[rank] ?? 500)
-        let lootFactor: Double = 1.0 + 0.2 * Double(max(pts - 1, 0))
-        let price: Int = Int(lootBase * lootFactor)
+        guard let catalog = regularCatalog.randomElement() else { return }
         let item = Item()
-        item.name = "Трофей из лутбокса (" + rank + ")"
-        item.rank = rank
-        item.itemDescription = "Выпал из еженедельного лутбокса"
-        item.slot = slot
-        item.costPesetas = price
-        item.costXp = price / 5
-        item.statModifiers[statName] = pts
+        item.name = catalog.name
+        item.rank = catalog.rank
+        item.itemDescription = catalog.desc
+        item.slot = catalog.slot
+        item.costPesetas = catalog.pricePesetas
+        item.costXp = catalog.priceXp
+        item.statModifiers[catalog.statName] = catalog.statPoints
+        item.isIndestructible = catalog.isPinpoon
+        item.uniqueFeature = catalog.uniqueFeature
         item.acquiredAt = Date()
         user.inventory.append(item); s.lootboxLastDate = Date()
+        lootboxResult = catalog
+        showLootboxResult = true
     }
     func buy(_ catalog: CatalogItem) {
         guard let userId = user?.id else { return }
@@ -484,6 +486,9 @@ struct ItemsView: View {
                 item.isEquipped = true
                 user.equipped.append(item)
         }
+    }
+    func itemIcon(_ slot: String) -> String {
+        switch slot { case "Голова": return "crown.fill"; case "Тело": return "tshirt.fill"; case "Инструмент": return "hammer.fill"; default: return "star.fill" }
     }
     func recycleValue(_ item: Item) -> Int {
         let days = Calendar.current.dateComponents([.day], from: item.acquiredAt, to: Date()).day ?? 0

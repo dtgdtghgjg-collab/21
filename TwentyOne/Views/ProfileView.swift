@@ -42,6 +42,7 @@ struct ProfileView: View {
                     customFieldsSection(user)
                 }
             }
+            .scrollContentBackground(.hidden)
             .navigationTitle("Профиль")
             .onAppear {
                 ensureUser()
@@ -100,6 +101,10 @@ struct ProfileView: View {
                 Text("Календарь").tag(2)
                 Text("Предметы").tag(3)
                 Text("Боссы").tag(4)
+            }
+            Text("Встроенные обои").font(.caption).foregroundStyle(.secondary)
+            ForEach(AppTheme.bundledWallpapers, id: \.self) { name in
+                Button(name) { theme.setWallpaper("bundled:" + name, for: wallpaperTab) }
             }
             PhotosPicker(selection: $selectedWallpaper, matching: .images) {
                 Text(theme.wallpaperPath(for: wallpaperTab).isEmpty ? "Выбрать обои" : "Сменить обои")
