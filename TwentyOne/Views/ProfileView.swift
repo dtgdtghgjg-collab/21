@@ -15,6 +15,7 @@ struct ProfileView: View {
     @State private var showLevelUp = false
     @EnvironmentObject var theme: AppTheme
     @State private var selectedWallpaper: PhotosPickerItem?
+    @State private var wallpaperTab: Int = 0
 
     var user: User? {
         users.first
@@ -93,12 +94,19 @@ struct ProfileView: View {
                 Text("Фиолетовый").tag("purple")
                 Text("Оранжевый").tag("orange")
             }
+            Picker("Вкладка для обоев", selection: $wallpaperTab) {
+                Text("Профиль").tag(0)
+                Text("Дейлики").tag(1)
+                Text("Календарь").tag(2)
+                Text("Предметы").tag(3)
+                Text("Боссы").tag(4)
+            }
             PhotosPicker(selection: $selectedWallpaper, matching: .images) {
-                Text(theme.wallpaperPath.isEmpty ? "Выбрать обои" : "Сменить обои")
+                Text(theme.wallpaperPath(for: wallpaperTab).isEmpty ? "Выбрать обои" : "Сменить обои")
             }
             Toggle("Обои на всех экранах", isOn: Binding(get: { theme.wallpaperAllScreens }, set: { theme.wallpaperAllScreens = $0 }))
-            if !theme.wallpaperPath.isEmpty {
-                Button("Убрать обои") { theme.wallpaperPath = "" }
+            if !theme.wallpaperPath(for: wallpaperTab).isEmpty {
+                Button("Убрать обои") { theme.clearWallpaper(for: wallpaperTab) }
             }
         }
     }
@@ -225,12 +233,20 @@ struct ProfileView: View {
         phone = users.first?.phone ?? ""
     }
     func takeLoan() {
-        guard let realm = try? Realm(), let user = user, user.loanAmount == 0, user.level >= 5 else { return }
-        try? realm.write { user.pesetas += 500; user.loanAmount = 550; user.loanDueDate = Calendar.current.date(byAdding: .day, value: 7, to: Date()) }
+        guard let current = user, current.loanAmount == 0, current.level >= 5 else { return }
+        let userId = current.id
+        RealmStore.write { realm in
+            guard let live = realm.object(ofType: User.self, forPrimaryKey: userId), live.loanAmount == 0, live.level >= 5 else { return }
+            live.pesetas += 500; live.loanAmount = 550; live.loanDueDate = Calendar.current.date(byAdding: .day, value: 7, to: Date())
+        }
     }
     func repayLoan() {
-        guard let realm = try? Realm(), let user = user, user.pesetas >= user.loanAmount else { return }
-        try? realm.write { user.pesetas -= user.loanAmount; user.loanAmount = 0; user.loanDueDate = nil }
+        guard let current = user, current.pesetas >= current.loanAmount else { return }
+        let userId = current.id
+        RealmStore.write { realm in
+            guard let live = realm.object(ofType: User.self, forPrimaryKey: userId), live.pesetas >= live.loanAmount else { return }
+            live.pesetas -= live.loanAmount; live.loanAmount = 0; live.loanDueDate = nil
+        }
     }
     func debtRemainingText(_ user: User) -> String {
         guard let seconds = DebtService.remainingSeconds(for: user) else { return "" }
@@ -250,58 +266,61 @@ struct ProfileView: View {
     }
 
     func saveProfile() {
-        guard let realm = try? Realm(), let user = user else { return }
-        try? realm.write {
-            user.name = name
-            user.phone = phone
-            user.aboutText = about
-            user.goalsText = goals
-            user.interestsText = interests
+        guard let userId = user?.id else { return }
+        let newName = name; let newPhone = phone; let newAbout = about; let newGoals = goals; let newInterests = interests
+        RealmStore.write { realm in
+            guard let live = realm.object(ofType: User.self, forPrimaryKey: userId) else { return }
+            live.name = newName; live.phone = newPhone; live.aboutText = newAbout; live.goalsText = newGoals; live.interestsText = newInterests
         }
     }
 
 
 
     func addCustomField() {
-        guard let realm = try? Realm(), let user = user else { return }
-        let field = KeyValue()
-        field.key = newKey
-        field.value = newValue
-        try? realm.write {
-            user.customFields.append(field)
+        guard let userId = user?.id else { return }
+        let fieldKey = newKey
+        let fieldValue = newValue
+        RealmStore.write { realm in
+            guard let live = realm.object(ofType: User.self, forPrimaryKey: userId) else { return }
+            let field = KeyValue()
+            field.key = fieldKey
+            field.value = fieldValue
+            live.customFields.append(field)
         }
         newKey = ""
         newValue = ""
     }
 
     func deleteFields(at offsets: IndexSet) {
-        guard let realm = try? Realm(), let user = user else { return }
-        try? realm.write {
-            user.customFields.remove(atOffsets: offsets)
+        guard let userId = user?.id else { return }
+        RealmStore.write { realm in
+            guard let live = realm.object(ofType: User.self, forPrimaryKey: userId) else { return }
+            live.customFields.remove(atOffsets: offsets)
         }
     }
 
     func loadWallpaper(from item: PhotosPickerItem?) {
         guard let item = item else { return }
+        let tab = wallpaperTab
         Task {
             guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("wallpaper.jpg")
+            let fileName = "wallpaper_tab" + String(tab) + "_" + String(Int(Date().timeIntervalSince1970)) + ".jpg"
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(fileName)
             guard let url = url else { return }
             try? data.write(to: url)
-            theme.wallpaperPath = url.path
+            let path = url.path
+            await MainActor.run { theme.setWallpaper(path, for: tab); theme.wallpaperPath = path }
         }
     }
     func loadAvatar(from item: PhotosPickerItem?) {
-        guard let item = item else { return }
+        guard let item = item, let userId = user?.id else { return }
         Task {
             guard let data = try? await item.loadTransferable(type: Data.self) else { return }
             let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("avatar.jpg")
             guard let url = url else { return }
             try? data.write(to: url)
-            guard let realm = try? await Realm(), let user = user else { return }
-            try? realm.write {
-                user.avatarPath = url.path
-            }
+            let path = url.path
+            await MainActor.run { RealmStore.write { realm in realm.object(ofType: User.self, forPrimaryKey: userId)?.avatarPath = path } }
         }
     }
 }

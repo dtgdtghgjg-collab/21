@@ -14,7 +14,7 @@ struct ContentView: View {
                 ItemsView().tabItem { Label("Предметы", systemImage: "backpack") }.tag(3)
                 BossesView().tabItem { Label("Боссы", systemImage: "shield") }.tag(4)
             }
-            .background(theme.background)
+            .background(theme.background(for: tab))
             Button { showAI = true } label: {
                 Image(systemName: "sparkles").font(.title2).padding(16)
                     .background(Circle().fill(theme.accentColor)).foregroundStyle(.white).shadow(radius: 4)

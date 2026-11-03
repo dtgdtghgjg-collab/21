@@ -66,28 +66,38 @@ struct StatsSkillsView: View {
         }
     }
     func updateSub(_ sub: SubAttribute, to value: Int) {
-        guard let realm = try? Realm() else { return }
-        try? realm.write { sub.value = value }
+        let id = sub.id
+        RealmStore.write { realm in realm.object(ofType: SubAttribute.self, forPrimaryKey: id)?.value = value }
     }
     func addSub(to attr: Attribute) {
-        guard let realm = try? Realm() else { return }
-        let sub = SubAttribute()
-        sub.name = newSubName
-        sub.value = 0
-        sub.cap = newSubCap
-        sub.isCustom = true
-        sub.parentAttributeId = attr.name
-        try? realm.write { attr.subAttributes.append(sub) }
+        let attrId = attr.id
+        let subName = newSubName
+        let subCap = newSubCap
+        let parentName = attr.name
+        RealmStore.write { realm in
+            guard let liveAttr = realm.object(ofType: Attribute.self, forPrimaryKey: attrId) else { return }
+            let sub = SubAttribute()
+            sub.name = subName
+            sub.value = 0
+            sub.cap = subCap
+            sub.isCustom = true
+            sub.parentAttributeId = parentName
+            liveAttr.subAttributes.append(sub)
+        }
         newSubName = ""
         newSubCap = 20
     }
     func addSkill() {
-        guard let realm = try? Realm(), let user = user else { return }
-        let skill = Skill()
-        skill.name = newSkillName
-        skill.progress = 0
-        skill.isPassive = false
-        try? realm.write { user.skills.append(skill) }
+        guard let userId = user?.id else { return }
+        let skillName = newSkillName
+        RealmStore.write { realm in
+            guard let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId) else { return }
+            let skill = Skill()
+            skill.name = skillName
+            skill.progress = 0
+            skill.isPassive = false
+            liveUser.skills.append(skill)
+        }
         newSkillName = ""
     }
 }

@@ -53,9 +53,9 @@ struct AIAssistantView: View {
         if messages.isEmpty { messages.append(ChatLine(role: "Ассистент", text: "Привет! Спроси про статы, предметы, босса или оценку дейлика. Если Ollama недоступна, отвечу локальным калькулятором.")) }
     }
     func saveHost() {
-        guard let realm = try? Realm() else { return }
-        try? realm.write {
-            if let s = realm.objects(AppSettings.self).first { s.ollamaHost = host; s.ollamaModel = model } else { let s = AppSettings(); s.ollamaHost = host; s.ollamaModel = model; realm.add(s) }
+        let newHost = host; let newModel = model
+        RealmStore.write { realm in
+            if let s = RealmStore.settings(in: realm) { s.ollamaHost = newHost; s.ollamaModel = newModel } else { let s = AppSettings(); s.ollamaHost = newHost; s.ollamaModel = newModel; realm.add(s) }
         }
     }
     func send(_ text: String) {

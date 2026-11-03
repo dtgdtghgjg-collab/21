@@ -410,7 +410,13 @@ struct ItemsView: View {
         return "F"
     }
     func openLootbox() {
-        guard let user = user, let realm = user.realm ?? (try? Realm()), let s = realm.objects(AppSettings.self).first else { return }
+        guard let userId = user?.id else { return }
+        RealmStore.write { realm in
+            guard let user = realm.object(ofType: User.self, forPrimaryKey: userId), let s = RealmStore.settings(in: realm) else { return }
+            openLootboxLive(user: user, settings: s, realm: realm)
+        }
+    }
+    func openLootboxLive(user: User, settings s: AppSettings, realm: Realm) {
         if !lootboxAvailable() { return }
         let rank = rollRank(level: user.level)
         let points: [String: Int] = ["F": 1, "E": 1, "D": 2, "C": 2, "B": 3, "A": 3, "S": 4, "SS": 5, "SSS": 6, "R": 8]
@@ -429,34 +435,41 @@ struct ItemsView: View {
         item.costXp = price / 5
         item.statModifiers[statName] = pts
         item.acquiredAt = Date()
-        try? realm.write { user.inventory.append(item); s.lootboxLastDate = Date() }
+        user.inventory.append(item); s.lootboxLastDate = Date()
     }
     func buy(_ catalog: CatalogItem) {
-        guard let realm = try? Realm(), let user = user, let s = realm.objects(AppSettings.self).first else { return }
-        if user.pesetas < catalog.pricePesetas { return }
-        let item = Item()
-        item.name = catalog.name
-        item.rank = catalog.rank
-        item.itemDescription = catalog.desc
-        item.slot = catalog.slot
-        item.costPesetas = catalog.pricePesetas
-        item.costXp = catalog.priceXp
-        item.statModifiers[catalog.statName] = catalog.statPoints
-        item.isIndestructible = catalog.isPinpoon
-        item.uniqueFeature = catalog.uniqueFeature
-        if catalog.id == "black-insurance" { item.uniqueFeature = "death_insurance" }
-        item.acquiredAt = Date()
-        try? realm.write {
-            user.pesetas -= catalog.pricePesetas
-            user.inventory.append(item)
+        guard let userId = user?.id else { return }
+        RealmStore.write { realm in
+            guard let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId), let s = RealmStore.settings(in: realm) else { return }
+            if liveUser.pesetas < catalog.pricePesetas { return }
+            let item = Item()
+            item.name = catalog.name
+            item.rank = catalog.rank
+            item.itemDescription = catalog.desc
+            item.slot = catalog.slot
+            item.costPesetas = catalog.pricePesetas
+            item.costXp = catalog.priceXp
+            item.statModifiers[catalog.statName] = catalog.statPoints
+            item.isIndestructible = catalog.isPinpoon
+            item.uniqueFeature = catalog.uniqueFeature
+            if catalog.id == "black-insurance" { item.uniqueFeature = "death_insurance" }
+            item.acquiredAt = Date()
+            liveUser.pesetas -= catalog.pricePesetas
+            liveUser.inventory.append(item)
             if s.marketPurchased.isEmpty { s.marketPurchased = catalog.id } else { s.marketPurchased += "," + catalog.id }
         }
         HistoryService.log("purchase", "Куплен предмет: " + catalog.name, pesetas: -catalog.pricePesetas)
     }
     func toggleEquip(_ item: Item) {
-        guard let user = user, let realm = user.realm ?? (try? Realm()) else { return }
-        try? realm.write {
-            if item.isEquipped {
+        guard let userId = user?.id else { return }
+        let itemId = item.id
+        RealmStore.write { realm in
+            guard let user = realm.object(ofType: User.self, forPrimaryKey: userId), let item = realm.object(ofType: Item.self, forPrimaryKey: itemId) else { return }
+            toggleEquipLive(user: user, item: item)
+        }
+    }
+    func toggleEquipLive(user: User, item: Item) {
+        if item.isEquipped {
                 item.isEquipped = false
                 var idx: Int? = nil
                 for (i, eq) in user.equipped.enumerated() { if eq.id == item.id { idx = i; break } }
@@ -470,7 +483,6 @@ struct ItemsView: View {
                 }
                 item.isEquipped = true
                 user.equipped.append(item)
-            }
         }
     }
     func recycleValue(_ item: Item) -> Int {
@@ -481,17 +493,19 @@ struct ItemsView: View {
         return Int(value.rounded(.down))
     }
     func recycle(_ item: Item) {
-        guard let realm = try? Realm(), let user = user else { return }
+        guard let userId = user?.id else { return }
+        let itemId = item.id
         let value = recycleValue(item)
-        try? realm.write {
-            user.pesetas += value
+        RealmStore.write { realm in
+            guard let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId), let liveItem = realm.object(ofType: Item.self, forPrimaryKey: itemId) else { return }
+            liveUser.pesetas += value
             var eIdx: Int? = nil
-            for (i, eq) in user.equipped.enumerated() { if eq.id == item.id { eIdx = i; break } }
-            if let eIdx = eIdx { user.equipped.remove(at: eIdx) }
+            for (i, eq) in liveUser.equipped.enumerated() { if eq.id == liveItem.id { eIdx = i; break } }
+            if let eIdx = eIdx { liveUser.equipped.remove(at: eIdx) }
             var iIdx: Int? = nil
-            for (i, inv) in user.inventory.enumerated() { if inv.id == item.id { iIdx = i; break } }
-            if let iIdx = iIdx { user.inventory.remove(at: iIdx) }
-            realm.delete(item)
+            for (i, inv) in liveUser.inventory.enumerated() { if inv.id == liveItem.id { iIdx = i; break } }
+            if let iIdx = iIdx { liveUser.inventory.remove(at: iIdx) }
+            realm.delete(liveItem)
         }
     }
 }

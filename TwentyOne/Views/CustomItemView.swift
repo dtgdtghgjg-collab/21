@@ -83,30 +83,32 @@ struct CustomItemView: View {
         }
     }
     func createItem() {
-        guard let realm = try? Realm(), let user = user, canAfford else { return }
+        guard let userId = user?.id, canAfford else { return }
         var path = ""
         if let data = imageData {
             let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("custom_" + UUID().uuidString + ".png")
             if let url = url, (try? data.write(to: url)) != nil { path = url.path }
         }
-        let item = Item()
-        item.name = name
-        item.rank = rank
-        item.itemDescription = desc
-        item.slot = slot
-        item.imagePath = path
-        item.costPesetas = pricePesetas
-        item.costXp = priceXp
-        item.statModifiers[statName] = statPoints
-        item.acquiredAt = Date()
-        let perk = Perk()
-        perk.trigger = "on_task_complete"
-        perk.effect = perkEffect
-        perk.params = perkParam
-        item.perks.append(perk)
-        try? realm.write {
-            user.pesetas -= pricePesetas
-            user.inventory.append(item)
+        let itemName = name; let itemDesc = desc; let itemRank = rank; let itemSlot = slot; let itemStatName = statName; let itemStatPoints = statPoints; let itemPrice = pricePesetas; let itemPriceXp = priceXp; let itemPerkEffect = perkEffect; let itemPerkParam = perkParam
+        RealmStore.write { realm in
+            guard let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId), liveUser.pesetas >= itemPrice else { return }
+            let item = Item()
+            item.name = itemName
+            item.rank = itemRank
+            item.itemDescription = itemDesc
+            item.slot = itemSlot
+            item.imagePath = path
+            item.costPesetas = itemPrice
+            item.costXp = itemPriceXp
+            item.statModifiers[itemStatName] = itemStatPoints
+            item.acquiredAt = Date()
+            let perk = Perk()
+            perk.trigger = "on_task_complete"
+            perk.effect = itemPerkEffect
+            perk.params = itemPerkParam
+            item.perks.append(perk)
+            liveUser.pesetas -= itemPrice
+            liveUser.inventory.append(item)
         }
         created = true
         name = ""

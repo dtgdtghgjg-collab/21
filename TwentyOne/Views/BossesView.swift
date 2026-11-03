@@ -72,15 +72,20 @@ struct BossesView: View {
         _ = DebtService.evaluate()
     }
     func attack(_ boss: Boss) {
-        guard let realm = try? Realm(), let user = user else { return }
+        guard let userId = user?.id else { return }
         if boss.isDefeated || boss.departed || !isUnlocked(boss) || !meetsRequirement(boss) || isBlocked(boss) || !canAttackToday(boss) { return }
+        let bossId = boss.id
+        let bossName = boss.name
+        let rewardPesetas = boss.rewardsPesetas
+        let rewardXp = boss.rewardsXp
         let damage = playerDamage(boss); var victory = false
-        try? realm.write {
-            boss.lastAttemptDate = Date(); boss.hp = max(0, boss.hp - damage)
-            for item in user.equipped where !item.isIndestructible { item.durability = max(0, item.durability - wear(for: item.rank)) }
-            if boss.hp == 0 && !boss.isDefeated { boss.isDefeated = true; victory = true; user.pesetas += boss.rewardsPesetas; user.xp += boss.rewardsXp; while user.xp >= User.xpForNextLevel(user.level) { user.xp -= User.xpForNextLevel(user.level); user.level += 1 } } else { user.pesetas -= 50 }
+        RealmStore.write { realm in
+            guard let liveBoss = realm.object(ofType: Boss.self, forPrimaryKey: bossId), let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId), !liveBoss.isDefeated, !liveBoss.departed else { return }
+            liveBoss.lastAttemptDate = Date(); liveBoss.hp = max(0, liveBoss.hp - damage)
+            for item in liveUser.equipped where !item.isIndestructible { item.durability = max(0, item.durability - wear(for: item.rank)) }
+            if liveBoss.hp == 0 { liveBoss.isDefeated = true; victory = true; liveUser.pesetas += liveBoss.rewardsPesetas; liveUser.xp += liveBoss.rewardsXp; while liveUser.xp >= User.xpForNextLevel(liveUser.level) { liveUser.xp -= User.xpForNextLevel(liveUser.level); liveUser.level += 1 } } else { liveUser.pesetas -= 50 }
         }
-        lastDamage = damage; if victory { HistoryService.log("boss_defeated", "Побеждён босс: " + boss.name, xp: boss.rewardsXp, pesetas: boss.rewardsPesetas); showVictory = true } else { _ = DebtService.evaluate() }
+        lastDamage = damage; if victory { HistoryService.log("boss_defeated", "Побеждён босс: " + bossName, xp: rewardXp, pesetas: rewardPesetas); showVictory = true } else { _ = DebtService.evaluate() }
     }
     func seedBosses() {
         guard let realm = try? Realm() else { return }; if !realm.objects(Boss.self).isEmpty { return }

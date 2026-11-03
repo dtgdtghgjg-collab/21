@@ -411,12 +411,13 @@ struct CalendarView: View {
         showEventForm = false
     }
     func deleteEvent(_ event: Event) {
-        guard let realm = try? Realm() else { return }
+        let eventObjectId = event.id
         let bossId = event.linkedBossId
         let eventId = event.id.stringValue
-        try? realm.write {
+        RealmStore.write { realm in
+            guard let liveEvent = realm.object(ofType: Event.self, forPrimaryKey: eventObjectId) else { return }
             for boss in realm.objects(Boss.self) where (boss.id.stringValue == bossId || boss.calendarEventLink == eventId) && !boss.isDefeated { realm.delete(boss); break }
-            realm.delete(event)
+            realm.delete(liveEvent)
         }
     }
 }

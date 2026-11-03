@@ -27,17 +27,19 @@ struct DailiesView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Toggle("Трекер сна", isOn: Binding(get: { settings.sleepEnabled }, set: { v in updateSettings { s in s.sleepEnabled = v } }))
                             if settings.sleepEnabled {
-                                Text("Сон: \(String(format: "%.1f", settings.sleepHours)) ч / 7 ч")
-                                ProgressView(value: settings.sleepHours, total: 7)
+                                Text("Сон: \(String(format: "%.1f", settings.sleepHours)) ч / \(String(format: "%.1f", settings.sleepGoalHours)) ч")
+                                ProgressView(value: settings.sleepHours, total: max(settings.sleepGoalHours, 0.5))
                                 Slider(value: Binding(get: { settings.sleepHours }, set: { v in updateSettings { s in s.sleepHours = v } }), in: 0...24, step: 0.5)
                             }
                             Toggle("Трекер воды", isOn: Binding(get: { settings.waterEnabled }, set: { v in updateSettings { s in s.waterEnabled = v } }))
                             if settings.waterEnabled {
-                                Text("Вода: \(String(format: "%.1f", settings.waterLiters)) л / 1.5 л")
-                                ProgressView(value: settings.waterLiters, total: 1.5)
+                                Text("Вода: \(String(format: "%.1f", settings.waterLiters)) л / \(String(format: "%.2f", settings.waterGoalLiters)) л")
+                                ProgressView(value: settings.waterLiters, total: max(settings.waterGoalLiters, 0.25))
                                 Slider(value: Binding(get: { settings.waterLiters }, set: { v in updateSettings { s in s.waterLiters = v } }), in: 0...5, step: 0.25)
                             }
                             Text("Множитель XP: x\(String(format: "%.1f", sleepWaterMultiplier()))")
+                            Stepper("Цель сна: \(String(format: "%.1f", settings.sleepGoalHours)) ч", value: Binding(get: { settings.sleepGoalHours }, set: { v in updateSettings { s in s.sleepGoalHours = v } }), in: 4...12, step: 0.5)
+                            Stepper("Цель воды: \(String(format: "%.2f", settings.waterGoalLiters)) л", value: Binding(get: { settings.waterGoalLiters }, set: { v in updateSettings { s in s.waterGoalLiters = v } }), in: 0.5...4, step: 0.25)
                             Button("Сбросить сон и воду") { updateSettings { s in s.sleepHours = 0; s.waterLiters = 0 } }
                         }
                         .padding(8)
@@ -109,8 +111,8 @@ struct DailiesView: View {
         guard let settings = settings else { return 1.0 }
         if !settings.sleepEnabled && !settings.waterEnabled { return 1.0 }
         var ok = true
-        if settings.sleepEnabled && settings.sleepHours < 7 { ok = false }
-        if settings.waterEnabled && settings.waterLiters < 1.5 { ok = false }
+        if settings.sleepEnabled && settings.sleepHours < settings.sleepGoalHours { ok = false }
+        if settings.waterEnabled && settings.waterLiters < settings.waterGoalLiters { ok = false }
         return ok ? 1.1 : 0.9
     }
     func harmMultiplier() -> Double { bosses.contains { $0.isEventBoss && !$0.isDefeated && !$0.departed && ($0.eventDate.map { Calendar.current.startOfDay(for: $0) < Calendar.current.startOfDay(for: Date()) } ?? false) } ? 0.9 : 1.0 }
@@ -122,7 +124,7 @@ struct DailiesView: View {
             if let s = realm.objects(AppSettings.self).first { if let d = s.trackerDate, !Calendar.current.isDateInToday(d) { s.sleepHours = 0; s.waterLiters = 0 }; s.trackerDate = Date() }
         }
     }
-    func updateSettings(_ change: @escaping (AppSettings) -> Void) { guard let realm = try? Realm(), let s = realm.objects(AppSettings.self).first else { return }; try? realm.write { change(s) } }
+    func updateSettings(_ change: @escaping (AppSettings) -> Void) { RealmStore.write { realm in if let s = RealmStore.settings(in: realm) { change(s) } } }
     func applyMissPenalties() {
         guard let realm = try? Realm(), let user = realm.objects(User.self).first, let s = realm.objects(AppSettings.self).first else { return }
         if let d = s.lastDailyPenaltyDate, Calendar.current.isDateInToday(d) { return }
@@ -165,10 +167,10 @@ struct DailiesView: View {
         try? realm.write { realm.add(daily) }
         newTitle = ""; xpReward = 10; pesetasReward = 50; deadlineTime = "23:59"; selectedSubId = nil; selectedSkillId = nil
     }
-    func deleteDailies(at offsets: IndexSet) { guard let realm = try? Realm() else { return }; let list = regularDailies; let toDelete = offsets.map { list[$0] }; try? realm.write { realm.delete(toDelete) } }
+    func deleteDailies(at offsets: IndexSet) { let ids = offsets.map { regularDailies[$0].id }; RealmStore.write { realm in realm.delete(ids.compactMap { realm.object(ofType: Daily.self, forPrimaryKey: $0) }) } }
     func grantSubPoint(_ daily: Daily) {
-        guard let id = daily.subAttributeId, let sub = allSubs.first(where: { $0.id.stringValue == id }) else { return }
-        if sub.value < sub.cap { sub.value += 1 } else { sub.overCapCounter += 1; if sub.overCapCounter >= 3 { sub.overCapCounter = 0; sub.value += 1 } }
+        guard let id = daily.subAttributeId, let oid = try? ObjectId(string: id) else { return }
+        RealmStore.write { realm in guard let sub = realm.object(ofType: SubAttribute.self, forPrimaryKey: oid) else { return }; if sub.value < sub.cap { sub.value += 1 } else { sub.overCapCounter += 1; if sub.overCapCounter >= 3 { sub.overCapCounter = 0; sub.value += 1 } } }
     }
     func focusButtonText(_ daily: Daily) -> String {
         guard let start = daily.focusStartedAt else { return "Фокус 25 мин" }
@@ -178,12 +180,15 @@ struct DailiesView: View {
         return "Фокус: осталось \(remainingMinutes) мин"
     }
     func toggleFocus(_ daily: Daily) {
-        guard let realm = daily.realm ?? (try? Realm()) else { return }
-        guard let start = daily.focusStartedAt else { try? realm.write { daily.focusStartedAt = Date() }; return }
-        if Date().timeIntervalSince(start) >= 1500 { try? realm.write { daily.focusCompletedDay = Date(); daily.focusStartedAt = nil }; completeDaily(daily) }
+        let dailyId = daily.id
+        guard let start = daily.focusStartedAt else { RealmStore.write { realm in realm.object(ofType: Daily.self, forPrimaryKey: dailyId)?.focusStartedAt = Date() }; return }
+        if Date().timeIntervalSince(start) >= 1500 { RealmStore.write { realm in if let live = realm.object(ofType: Daily.self, forPrimaryKey: dailyId) { live.focusCompletedDay = Date(); live.focusStartedAt = nil } }; completeDaily(daily) }
     }
     func completeDaily(_ daily: Daily) {
-        guard let user = user, let realm = user.realm ?? (try? Realm()) else { return }
+        guard let user = user else { return }
+        let dailyId = daily.id
+        let userId = user.id
+        let subIdString = daily.subAttributeId
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let onTime = isBeforeDeadline(daily)
@@ -201,14 +206,15 @@ struct DailiesView: View {
         let xpEarned = Int((Double(daily.xpReward) * totalMultiplier * perkXpMultiplier).rounded(.down))
         let pesetasEarned = Int((Double(daily.pesetasReward) * totalMultiplier * perkPesetasMultiplier).rounded(.down))
         var leveledUp = false; var crystallized = false
-        try? realm.write {
-            daily.streak = newStreak; daily.lastCompletedDay = Date(); daily.consecutiveMisses = 0
-            user.pesetas += pesetasEarned; user.xp += xpEarned
-            while user.xp >= User.xpForNextLevel(user.level) { user.xp -= User.xpForNextLevel(user.level); user.level += 1; leveledUp = true }
-            grantSubPoint(daily)
-            if let skillId = daily.linkedSkillId, let skill = user.skills.first(where: { $0.id.stringValue == skillId }) {
-                if !skill.linkedDailyIds.contains(daily.id.stringValue) { skill.linkedDailyIds.append(daily.id.stringValue) }
-                if onTime && !skill.isPassive { skill.progress = min(100, newStreak * 100 / max(daily.crystallizationDays, 1)); if newStreak >= daily.crystallizationDays { skill.isPassive = true; skill.progress = 100; crystallized = true } }
+        RealmStore.write { realm in
+            guard let liveDaily = realm.object(ofType: Daily.self, forPrimaryKey: dailyId), let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId) else { return }
+            liveDaily.streak = newStreak; liveDaily.lastCompletedDay = Date(); liveDaily.consecutiveMisses = 0
+            liveUser.pesetas += pesetasEarned; liveUser.xp += xpEarned
+            while liveUser.xp >= User.xpForNextLevel(liveUser.level) { liveUser.xp -= User.xpForNextLevel(liveUser.level); liveUser.level += 1; leveledUp = true }
+            if let subIdString = subIdString, let oid = try? ObjectId(string: subIdString), let sub = realm.object(ofType: SubAttribute.self, forPrimaryKey: oid) { if sub.value < sub.cap { sub.value += 1 } else { sub.overCapCounter += 1; if sub.overCapCounter >= 3 { sub.overCapCounter = 0; sub.value += 1 } } }
+            if let skillId = liveDaily.linkedSkillId, let skill = liveUser.skills.first(where: { $0.id.stringValue == skillId }) {
+                if !skill.linkedDailyIds.contains(liveDaily.id.stringValue) { skill.linkedDailyIds.append(liveDaily.id.stringValue) }
+                if onTime && !skill.isPassive { skill.progress = min(100, newStreak * 100 / max(liveDaily.crystallizationDays, 1)); if newStreak >= liveDaily.crystallizationDays { skill.isPassive = true; skill.progress = 100; crystallized = true } }
             }
         }
         HistoryService.log("daily_complete", "Выполнен дейлик: " + daily.title, xp: xpEarned, pesetas: pesetasEarned)

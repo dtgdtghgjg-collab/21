@@ -48,8 +48,7 @@ struct MusicSettingsView: View {
         try? realm.write { if realm.objects(AppSettings.self).isEmpty { realm.add(AppSettings()) } }
     }
     func update(_ block: (AppSettings) -> Void) {
-        guard let realm = try? Realm(), let s = realm.objects(AppSettings.self).first else { return }
-        try? realm.write { block(s) }
+        RealmStore.write { realm in if let s = RealmStore.settings(in: realm) { block(s) } }
     }
     func path(for tab: Int) -> String? {
         guard let s = settings else { return nil }
