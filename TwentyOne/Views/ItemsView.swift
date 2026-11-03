@@ -324,7 +324,7 @@ struct ItemsView: View {
                     Text("Черный рынок закрыт")
                     if let next = settings?.blackMarketNextDate { Text("Следующее появление: \(next.formatted(date: .abbreviated, time: .omitted))") }
                     else { Text("Расписание появится после первого запуска") }
-                    Text("Появляется спорадически: раз в 2 недели - 2 месяца, открыт 3 дня").font(.caption).foregroundStyle(.secondary)
+                    Text("Появляется спорадически: раз в 1-30 дней, открыт 3 дня").font(.caption).foregroundStyle(.secondary)
                 }.padding()
             }
         }
@@ -361,10 +361,10 @@ struct ItemsView: View {
         let today = Calendar.current.startOfDay(for: Date())
         try? realm.write {
             if s.blackMarketNextDate == nil {
-                s.blackMarketNextDate = Calendar.current.date(byAdding: .day, value: Int.random(in: 14...60), to: today)
+                s.blackMarketNextDate = Calendar.current.date(byAdding: .day, value: Int.random(in: 1...30), to: today)
             } else if let until = s.blackMarketVisibleUntil {
                 if today > until {
-                    s.blackMarketNextDate = Calendar.current.date(byAdding: .day, value: Int.random(in: 14...60), to: today)
+                    s.blackMarketNextDate = Calendar.current.date(byAdding: .day, value: Int.random(in: 1...30), to: today)
                     s.blackMarketVisibleUntil = nil
                 }
             } else if let next = s.blackMarketNextDate, s.blackMarketVisibleUntil == nil, today >= Calendar.current.startOfDay(for: next) {
@@ -410,7 +410,7 @@ struct ItemsView: View {
         return "F"
     }
     func openLootbox() {
-        guard let realm = try? Realm(), let user = user, let s = realm.objects(AppSettings.self).first else { return }
+        guard let user = user, let realm = user.realm ?? (try? Realm()), let s = realm.objects(AppSettings.self).first else { return }
         if !lootboxAvailable() { return }
         let rank = rollRank(level: user.level)
         let points: [String: Int] = ["F": 1, "E": 1, "D": 2, "C": 2, "B": 3, "A": 3, "S": 4, "SS": 5, "SSS": 6, "R": 8]
@@ -454,7 +454,7 @@ struct ItemsView: View {
         HistoryService.log("purchase", "Куплен предмет: " + catalog.name, pesetas: -catalog.pricePesetas)
     }
     func toggleEquip(_ item: Item) {
-        guard let realm = try? Realm(), let user = user else { return }
+        guard let user = user, let realm = user.realm ?? (try? Realm()) else { return }
         try? realm.write {
             if item.isEquipped {
                 item.isEquipped = false

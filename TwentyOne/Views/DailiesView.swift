@@ -24,11 +24,25 @@ struct DailiesView: View {
             SwiftUI.List {
                 Section("Сон и вода") {
                     if let settings = settings {
-                        Toggle("Трекер сна", isOn: Binding(get: { settings.sleepEnabled }, set: { v in updateSettings { s in s.sleepEnabled = v } }))
-                        if settings.sleepEnabled { Stepper("Сон: \(String(format: "%.1f", settings.sleepHours)) ч (цель 7)", value: Binding(get: { settings.sleepHours }, set: { v in updateSettings { s in s.sleepHours = v } }), in: 0...24, step: 0.5) }
-                        Toggle("Трекер воды", isOn: Binding(get: { settings.waterEnabled }, set: { v in updateSettings { s in s.waterEnabled = v } }))
-                        if settings.waterEnabled { Stepper("Вода: \(String(format: "%.1f", settings.waterLiters)) л (цель 1.5)", value: Binding(get: { settings.waterLiters }, set: { v in updateSettings { s in s.waterLiters = v } }), in: 0...5, step: 0.25) }
-                        Text("Множитель XP: x\(String(format: "%.1f", sleepWaterMultiplier()))")
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle("Трекер сна", isOn: Binding(get: { settings.sleepEnabled }, set: { v in updateSettings { s in s.sleepEnabled = v } }))
+                            if settings.sleepEnabled {
+                                Text("Сон: \(String(format: "%.1f", settings.sleepHours)) ч / 7 ч")
+                                ProgressView(value: settings.sleepHours, total: 7)
+                                Slider(value: Binding(get: { settings.sleepHours }, set: { v in updateSettings { s in s.sleepHours = v } }), in: 0...24, step: 0.5)
+                            }
+                            Toggle("Трекер воды", isOn: Binding(get: { settings.waterEnabled }, set: { v in updateSettings { s in s.waterEnabled = v } }))
+                            if settings.waterEnabled {
+                                Text("Вода: \(String(format: "%.1f", settings.waterLiters)) л / 1.5 л")
+                                ProgressView(value: settings.waterLiters, total: 1.5)
+                                Slider(value: Binding(get: { settings.waterLiters }, set: { v in updateSettings { s in s.waterLiters = v } }), in: 0...5, step: 0.25)
+                            }
+                            Text("Множитель XP: x\(String(format: "%.1f", sleepWaterMultiplier()))")
+                            Button("Сбросить сон и воду") { updateSettings { s in s.sleepHours = 0; s.waterLiters = 0 } }
+                        }
+                        .padding(8)
+                        .background(Color.blue.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
                 Section("Задание дня") {
@@ -42,8 +56,10 @@ struct DailiesView: View {
                 }
                 Section("Создать дейлик") {
                     TextField("Название", text: $newTitle)
-                    Stepper("XP: \(xpReward)", value: $xpReward, in: 0...1000, step: 5)
-                    Stepper("Песеты: \(pesetasReward)", value: $pesetasReward, in: 0...10000, step: 10)
+                    Text("XP: \(xpReward)")
+                    Slider(value: Binding(get: { Double(xpReward) }, set: { xpReward = Int($0) }), in: 0...1000, step: 5)
+                    Text("Песеты: \(pesetasReward) P")
+                    Slider(value: Binding(get: { Double(pesetasReward) }, set: { pesetasReward = Int($0) }), in: 0...10000, step: 50)
                     TextField("Дедлайн (ЧЧ:ММ)", text: $deadlineTime)
                     Picker("Подхарактеристика", selection: $selectedSubId) {
                         Text("Без подхарактеристики").tag(nil as String?)
@@ -162,12 +178,12 @@ struct DailiesView: View {
         return "Фокус: осталось \(remainingMinutes) мин"
     }
     func toggleFocus(_ daily: Daily) {
-        guard let realm = try? Realm() else { return }
+        guard let realm = daily.realm ?? (try? Realm()) else { return }
         guard let start = daily.focusStartedAt else { try? realm.write { daily.focusStartedAt = Date() }; return }
         if Date().timeIntervalSince(start) >= 1500 { try? realm.write { daily.focusCompletedDay = Date(); daily.focusStartedAt = nil }; completeDaily(daily) }
     }
     func completeDaily(_ daily: Daily) {
-        guard let realm = try? Realm(), let user = user else { return }
+        guard let user = user, let realm = user.realm ?? (try? Realm()) else { return }
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let onTime = isBeforeDeadline(daily)

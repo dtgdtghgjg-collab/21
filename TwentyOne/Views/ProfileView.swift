@@ -185,6 +185,11 @@ struct ProfileView: View {
                 MusicSettingsView()
             }
         }
+        Section("Разработчик") {
+            NavigationLink("Настройки разработчика") {
+                DeveloperSettingsView()
+            }
+        }
     }
 
     @ViewBuilder
