@@ -38,22 +38,7 @@ struct ProfileView: View {
                     levelBalanceSection(user)
                     loanSection(user)
                     profileDetailsSection
-                    Section("Кастомные поля") {
-                        ForEach(user.customFields, id: .key) { field in
-                            fieldRow(field)
-                        }
-                        .onDelete { indexSet in
-                            deleteFields(at: indexSet)
-                        }
-                        HStack {
-                            TextField("Ключ", text: $newKey)
-                            TextField("Значение", text: $newValue)
-                            Button("Добавить") {
-                                addCustomField()
-                            }
-                            .disabled(newKey.isEmpty)
-                        }
-                    }
+                    customFieldsSection(user)
                 }
             }
             .navigationTitle("Профиль")
