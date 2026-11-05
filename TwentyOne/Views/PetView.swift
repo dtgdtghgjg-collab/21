@@ -40,8 +40,8 @@ struct PetView: View {
             .pickerStyle(.segmented)
 
             Image(imageName)
-                .interpolation(.nearest)
                 .resizable()
+                .interpolation(.none)
                 .scaledToFit()
                 .frame(width: 160, height: 160)
 
