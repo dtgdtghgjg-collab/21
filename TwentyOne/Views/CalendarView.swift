@@ -19,11 +19,11 @@ struct CalendarView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
-                        Button("<") { changeMonth(by: -1) }
+                        Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left").font(.system(size: 13, weight: .bold)).foregroundStyle(.white).frame(width: 36, height: 36).background(Circle().fill(TwentyOneTab.history.theme.card)).overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1)) }.buttonStyle(.plain)
                         Spacer()
-                        Text(monthTitle).font(.headline)
+                        Text(monthTitle).font(.system(size: 20, weight: .bold, design: .rounded))
                         Spacer()
-                        Button(">") { changeMonth(by: 1) }
+                        Button { changeMonth(by: 1) } label: { Image(systemName: "chevron.right").font(.system(size: 13, weight: .bold)).foregroundStyle(.white).frame(width: 36, height: 36).background(Circle().fill(TwentyOneTab.history.theme.card)).overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1)) }.buttonStyle(.plain)
                     }
                     HStack {
                         ForEach(["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], id: \.self) { day in
@@ -36,11 +36,12 @@ struct CalendarView: View {
                                 Button { openForm(for: day) } label: {
                                     VStack(spacing: 2) {
                                         Text("\(Calendar.current.component(.day, from: day))").font(.body)
-                                        Circle().fill(eventsOn(day).isEmpty ? Color.clear : Color.red).frame(width: 6, height: 6)
+                                        Circle().fill(eventsOn(day).isEmpty ? Color.clear : AppPalette.gold).frame(width: 6, height: 6)
                                     }
                                     .frame(maxWidth: .infinity, minHeight: 44)
-                                    .background(Calendar.current.isDateInToday(day) ? Color.blue.opacity(0.2) : Color.clear)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Calendar.current.isDateInToday(day) ? TwentyOneTab.history.theme.accent.opacity(0.30) : Color.white.opacity(0.05)))
+                                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Calendar.current.isDateInToday(day) ? TwentyOneTab.history.theme.accent.opacity(0.55) : Color.white.opacity(0.06), lineWidth: 1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
                             } else {

@@ -26,20 +26,23 @@ struct StatsSkillsView: View {
                             Button("Добавить") { addSub(to: attr) }.disabled(newSubName.isEmpty)
                         }
                     } label: {
-                        HStack { Text(attr.name); Spacer(); Text("\(attr.total) / 100") }
+                        VStack(alignment: .leading, spacing: 8) { HStack { Text(attr.name).font(.system(size: 16, weight: .semibold, design: .rounded)); Spacer(); StatPill(icon: "chart.bar.fill", text: "\(attr.total) / 100", color: TwentyOneTab.profile.theme.accent) }; GradientProgressBar(value: Double(attr.total), total: 100, color: TwentyOneTab.profile.theme.accent, height: 8) }
                     }
                 }
             }
             Section("Навыки") {
                 if let user = user {
                     ForEach(user.skills, id: \.id) { skill in
-                        HStack { Text(skill.name); Spacer(); Text(skill.isPassive ? "пассивный" : "активный").font(.caption) }
+                        HStack { Text(skill.name).font(.system(size: 16, weight: .semibold, design: .rounded)); Spacer(); StatPill(icon: skill.isPassive ? "moon.fill" : "bolt.fill", text: skill.isPassive ? "пассивный" : "активный", color: TwentyOneTab.achievements.theme.accent) }
                     }
                 }
                 TextField("Название навыка", text: $newSkillName)
                 Button("Добавить навык") { addSkill() }.disabled(newSkillName.isEmpty)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(TwentyOneTab.profile.theme.gradient)
+        .tint(TwentyOneTab.profile.theme.accent)
         .navigationTitle("Характеристики и навыки")
         .onAppear { ensureUserAndAttributes() }
     }

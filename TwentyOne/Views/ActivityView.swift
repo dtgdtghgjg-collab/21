@@ -8,7 +8,7 @@ struct ActivityView: View {
             Section("Теплокарта (год)") {
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(10), spacing: 2), count: 53), spacing: 2) {
                     ForEach(0..<371, id: \.self) { offset in
-                        Rectangle().fill(dayColor(offset: offset)).frame(width: 10, height: 10)
+                        RoundedRectangle(cornerRadius: 2, style: .continuous).fill(dayColor(offset: offset)).frame(width: 10, height: 10)
                     }
                 }
             }
@@ -22,12 +22,15 @@ struct ActivityView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(TwentyOneTab.history.theme.gradient)
+        .tint(TwentyOneTab.history.theme.accent)
         .navigationTitle("История и активность")
     }
     func dayColor(offset: Int) -> Color {
         let day = Calendar.current.date(byAdding: .day, value: offset - 370, to: Calendar.current.startOfDay(for: Date())) ?? Date()
         let count = entries.filter { $0.kind == "daily_complete" && Calendar.current.isDate($0.date, inSameDayAs: day) }.count
-        if count == 0 { return Color.gray.opacity(0.15) }
-        return Color.green.opacity(min(0.3 + 0.2 * Double(count), 1.0))
+        if count == 0 { return Color.white.opacity(0.08) }
+        return TwentyOneTab.history.theme.accent.opacity(min(0.35 + 0.18 * Double(count), 1.0))
     }
 }

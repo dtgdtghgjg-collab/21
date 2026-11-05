@@ -24,6 +24,9 @@ struct DeveloperSettingsView: View {
                 Button("Сбросить штрафы за пропуски") { resetPenalties() }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(TwentyOneTab.bosses.theme.gradient)
+        .tint(TwentyOneTab.bosses.theme.accent)
         .navigationTitle("Настройки разработчика")
     }
     func addXP(_ amount: Int) {

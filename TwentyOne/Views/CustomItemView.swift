@@ -81,6 +81,9 @@ struct CustomItemView: View {
                 if created { Text("Предмет создан и добавлен в инвентарь").foregroundStyle(.green) }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(TwentyOneTab.market.theme.gradient)
+        .tint(TwentyOneTab.market.theme.accent)
         .onChange(of: selectedPhoto) { _, item in
             Task {
                 if let data = try? await item?.loadTransferable(type: Data.self) { imageData = data }

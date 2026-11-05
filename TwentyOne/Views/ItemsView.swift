@@ -290,12 +290,15 @@ struct ItemsView: View {
                 if let user = user {
                     ForEach(user.inventory, id: \.id) { item in
                         VStack(alignment: .leading, spacing: 4) {
-                            HStack { Image(systemName: itemIcon(item.slot)).foregroundStyle(.orange); Text(item.name + " [" + item.rank + "]" + (item.isEquipped ? " - экипировано" : "")) }
-                            Text("\(item.slot) - \(item.costPesetas) P - прочность \(item.durability)/\(item.maxDurability)").font(.caption).foregroundStyle(.secondary)
-                            HStack {
-                                Button(item.isEquipped ? "Снять" : "Экипировать") { toggleEquip(item) }
-                                Button("Переработать (+\(recycleValue(item)) P)") { recycle(item) }
-                                Button("Экспорт .json21") { exportURL = Json21Service.exportItemFile(item) }
+                            HStack(spacing: 8) { Image(systemName: itemIcon(item.slot)).foregroundStyle(AppPalette.gold); Text(item.name).font(.system(size: 16, weight: .semibold, design: .rounded)); RankBadge(rank: item.rank); if item.isEquipped { StatPill(icon: "checkmark.circle.fill", text: "экипировано", color: TwentyOneTab.dailies.theme.accent) } }
+                            if !item.itemDescription.isEmpty { Text(item.itemDescription).font(.caption).foregroundStyle(.secondary) }
+                            HStack(spacing: 6) { StatPill(icon: "tag.fill", text: item.slot, color: TwentyOneTab.market.theme.accent); StatPill(icon: "banknote.fill", text: "\(item.costPesetas) P", color: AppPalette.gold) }
+                            Text("Прочность \(item.durability)/\(item.maxDurability)").font(.caption).foregroundStyle(.secondary)
+                            GradientProgressBar(value: Double(item.durability), total: Double(max(item.maxDurability, 1)), color: TwentyOneTab.market.theme.accent, height: 8)
+                            HStack(spacing: 8) {
+                                Button(item.isEquipped ? "Снять" : "Экипировать") { toggleEquip(item) }.buttonStyle(.borderedProminent).tint(TwentyOneTab.market.theme.accent)
+                                Button("Переработать (+\(recycleValue(item)) P)") { recycle(item) }.buttonStyle(.bordered)
+                                Button("Экспорт .json21") { exportURL = Json21Service.exportItemFile(item) }.buttonStyle(.bordered)
                             }.font(.caption)
                         }
                     }
@@ -307,15 +310,22 @@ struct ItemsView: View {
     func marketList(isBlack: Bool) -> some View {
         SwiftUI.List {
             ForEach(marketItems(isBlack: isBlack)) { catalog in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack { Image(systemName: itemIcon(catalog.slot)).foregroundStyle(.orange); Text("\(catalog.name) [\(catalog.rank)]") }
-                    Text("\(catalog.slot) - \(catalog.statName) +\(catalog.statPoints)").font(.caption).foregroundStyle(.secondary)
-                    Text("\(catalog.pricePesetas) P, \(catalog.priceXp) XP").font(.caption)
-                    Button("Купить") { buy(catalog) }.disabled((user?.pesetas ?? 0) < catalog.pricePesetas)
+                HStack(alignment: .top, spacing: 12) {
+                    ItemArtwork(imageName: catalog.imageName, fallbackIcon: itemIcon(catalog.slot), size: 64)
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(spacing: 7) { Text(catalog.name).font(.system(size: 16, weight: .semibold, design: .rounded)); RankBadge(rank: catalog.rank); if catalog.isPinpoon { StatPill(icon: "sparkles", text: "PINPOON", color: AppPalette.gold) } }
+                        if !catalog.desc.isEmpty { Text(catalog.desc).font(.caption).foregroundStyle(.secondary) }
+                        HStack(spacing: 6) { StatPill(icon: "tag.fill", text: catalog.slot, color: TwentyOneTab.market.theme.accent); StatPill(icon: "chart.bar.fill", text: "\(catalog.statName) +\(catalog.statPoints)", color: TwentyOneTab.market.theme.accent) }
+                        HStack(spacing: 6) { StatPill(icon: "banknote.fill", text: "\(catalog.pricePesetas) P", color: AppPalette.gold); StatPill(icon: "star.fill", text: "\(catalog.priceXp) XP", color: TwentyOneTab.profile.theme.accent) }
+                        Button("Купить") { buy(catalog) }.buttonStyle(.borderedProminent).tint(TwentyOneTab.market.theme.accent).disabled((user?.pesetas ?? 0) < catalog.pricePesetas)
+                    }
                 }
+                .padding(.vertical, 6)
+                .listRowBackground(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(TwentyOneTab.market.theme.card.opacity(0.92)))
             }
         }
         .scrollContentBackground(.hidden)
+        .background(TwentyOneTab.market.theme.gradient)
     }
     var blackMarketView: some View {
         Group {

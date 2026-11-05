@@ -29,10 +29,10 @@ struct BossesView: View {
     }
     func bossRow(_ boss: Boss) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("\(boss.name) [\(boss.rank)]")
+            HStack(spacing: 8) { Text(boss.name).font(.system(size: 18, weight: .bold, design: .rounded)); RankBadge(rank: boss.rank); if boss.isEventBoss { StatPill(icon: "calendar", text: "ивент", color: TwentyOneTab.bosses.theme.accent) } }
             if !boss.pixelArtAscii.isEmpty { Text(boss.pixelArtAscii).font(.caption).monospaced() }
             Text("HP: \(boss.hp) / \(boss.maxHp)").font(.caption).foregroundStyle(.secondary)
-            ProgressView(value: Double(boss.hp), total: Double(max(boss.maxHp, 1)))
+            GradientProgressBar(value: Double(boss.hp), total: Double(max(boss.maxHp, 1)), color: TwentyOneTab.bosses.theme.accent, height: 12)
             if !boss.requiredAttributeName.isEmpty { Text("Нужно: \(boss.requiredAttributeName) \(boss.requiredAttributeValue), у вас \(attributeTotal(boss.requiredAttributeName))").font(.caption).foregroundStyle(.secondary) }
             if isHarming(boss) { Text("Босс вредит: -20 P в день и -10% к наградам дейликов").font(.caption).foregroundStyle(.red) }
             Text("Награда: \(boss.rewardsPesetas) P, \(boss.rewardsXp) XP").font(.caption).foregroundStyle(.secondary)

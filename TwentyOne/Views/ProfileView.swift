@@ -43,6 +43,8 @@ struct ProfileView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .background(TwentyOneTab.profile.theme.gradient)
+            .tint(TwentyOneTab.profile.theme.accent)
             .navigationTitle("Профиль")
             .onAppear {
                 ensureUser()
@@ -68,19 +70,22 @@ struct ProfileView: View {
     @ViewBuilder
     private var headerSection: some View {
         Section {
-            HStack {
-                avatarView
-                VStack(alignment: .leading) {
-                    TextField("Имя", text: $name)
-                    TextField("Телефон", text: $phone)
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 14) {
+                    avatarView
+                    VStack(alignment: .leading, spacing: 8) {
+                        TextField("Имя", text: $name).font(.system(size: 20, weight: .bold, design: .rounded))
+                        TextField("Телефон", text: $phone).font(.subheadline).foregroundStyle(.secondary)
+                        if let user = user { StatPill(icon: "star.fill", text: "Уровень \(user.level)", color: TwentyOneTab.profile.theme.accent) }
+                    }
+                }
+                HStack(spacing: 10) {
+                    Button("Сохранить профиль") { saveProfile() }.buttonStyle(.borderedProminent).tint(TwentyOneTab.profile.theme.accent)
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) { Text("Выбрать аватар") }
                 }
             }
-            Button("Сохранить профиль") {
-                saveProfile()
-            }
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                Text("Выбрать аватар")
-            }
+            .padding(.vertical, 6)
+            .listRowBackground(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(TwentyOneTab.profile.theme.heroGradient).overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1)))
         }
     }
 
@@ -119,15 +124,21 @@ struct ProfileView: View {
     @ViewBuilder
     private func levelBalanceSection(_ user: User) -> some View {
         Section("Уровень и баланс") {
-            Text("Уровень: \(user.level)")
-            Text("Песеты: \(user.pesetas) P")
-            Text(xpText)
-            ProgressView(value: Double(user.xp), total: xpProgressTotal)
-            if user.pesetas < 0 {
-                Text("ДОЛГ: баланс ниже нуля").foregroundStyle(.red)
-                Text(debtRemainingText(user)).foregroundStyle(.red)
-                Text(debtInsuranceText(user)).font(.caption)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    StatPill(icon: "star.fill", text: "Уровень \(user.level)", color: TwentyOneTab.profile.theme.accent)
+                    StatPill(icon: "banknote.fill", text: "\(user.pesetas) P", color: AppPalette.gold)
+                }
+                Text(xpText).font(.caption).foregroundStyle(.secondary)
+                GradientProgressBar(value: Double(user.xp), total: xpProgressTotal, color: TwentyOneTab.profile.theme.accent)
+                if user.pesetas < 0 {
+                    Text("ДОЛГ: баланс ниже нуля").font(.headline).foregroundStyle(.red)
+                    Text(debtRemainingText(user)).foregroundStyle(.red)
+                    Text(debtInsuranceText(user)).font(.caption).foregroundStyle(.secondary)
+                }
             }
+            .padding(.vertical, 4)
+            .listRowBackground(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(TwentyOneTab.profile.theme.card.opacity(0.92)))
         }
     }
 
@@ -221,15 +232,18 @@ struct ProfileView: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 64, height: 64)
+                    .frame(width: 76, height: 76)
                     .clipShape(Circle())
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.30), lineWidth: 2))
             } else {
                 Circle()
-                    .fill(Color.blue)
-                    .frame(width: 64, height: 64)
-                    .overlay(Text("\(name.prefix(1))").foregroundStyle(.white).font(.title))
+                    .fill(TwentyOneTab.profile.theme.accentGradient)
+                    .frame(width: 76, height: 76)
+                    .overlay(Text("\(name.prefix(1))").foregroundStyle(.white).font(.system(size: 30, weight: .bold, design: .rounded)))
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.30), lineWidth: 2))
             }
         }
+        .shadow(color: Color.black.opacity(0.30), radius: 10, x: 0, y: 5)
     }
 
     func checkDebt() {

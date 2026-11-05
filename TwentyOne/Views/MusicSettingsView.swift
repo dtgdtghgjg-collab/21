@@ -37,6 +37,9 @@ struct MusicSettingsView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(TwentyOneTab.profile.theme.gradient)
+        .tint(TwentyOneTab.profile.theme.accent)
         .navigationTitle("Музыка")
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.audio]) { result in
             if let url = try? result.get(), let tab = importingTab { importTrack(url: url, tab: tab) }

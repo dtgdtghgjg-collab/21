@@ -18,7 +18,9 @@ final class AppTheme: ObservableObject {
     func setWallpaper(_ path: String, for tab: Int) { switch tab { case 0: wallpaperProfilePath = path; case 1: wallpaperDailiesPath = path; case 2: wallpaperCalendarPath = path; case 3: wallpaperItemsPath = path; case 4: wallpaperBossesPath = path; default: wallpaperPath = path } }
     func clearWallpaper(for tab: Int) { setWallpaper("", for: tab) }
     func wallpaperImage(for tab: Int) -> UIImage? { let path = wallpaperPath(for: tab); if path.hasPrefix("bundled:") { return UIImage(named: String(path.dropFirst(8))) }; if !path.isEmpty { return UIImage(contentsOfFile: path) }; return nil }
-    func background(for tab: Int) -> some View { ZStack { if let ui = wallpaperImage(for: tab) { Image(uiImage: ui).resizable().scaledToFill().ignoresSafeArea() } else { LinearGradient(colors: [.black, .blue], startPoint: .top, endPoint: .bottom).ignoresSafeArea() } } }
+    func visualTheme(for tab: Int) -> TabVisualTheme { switch tab { case 0: return TwentyOneTab.profile.theme; case 1: return TwentyOneTab.dailies.theme; case 2: return TwentyOneTab.history.theme; case 3: return TwentyOneTab.market.theme; case 4: return TwentyOneTab.bosses.theme; default: return TwentyOneTab.profile.theme } }
+    func accentColor(for tab: Int) -> Color { visualTheme(for: tab).accent }
+    func background(for tab: Int) -> some View { ZStack { if let ui = wallpaperImage(for: tab) { Image(uiImage: ui).resizable().scaledToFill().ignoresSafeArea() } else { visualTheme(for: tab).gradient.ignoresSafeArea() } } }
     var background: some View { background(for: -1) }
     var mainBackground: some View { background(for: 0) }
 }

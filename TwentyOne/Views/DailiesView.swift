@@ -28,13 +28,13 @@ struct DailiesView: View {
                             Toggle("Трекер сна", isOn: Binding(get: { settings.sleepEnabled }, set: { v in updateSettings { s in s.sleepEnabled = v } }))
                             if settings.sleepEnabled {
                                 Text("Сон: \(String(format: "%.1f", settings.sleepHours)) ч / \(String(format: "%.1f", settings.sleepGoalHours)) ч")
-                                ProgressView(value: settings.sleepHours, total: max(settings.sleepGoalHours, 0.5))
+                                GradientProgressBar(value: settings.sleepHours, total: max(settings.sleepGoalHours, 0.5), color: TwentyOneTab.dailies.theme.accent)
                                 Slider(value: Binding(get: { settings.sleepHours }, set: { v in updateSettings { s in s.sleepHours = v } }), in: 0...24, step: 0.5)
                             }
                             Toggle("Трекер воды", isOn: Binding(get: { settings.waterEnabled }, set: { v in updateSettings { s in s.waterEnabled = v } }))
                             if settings.waterEnabled {
                                 Text("Вода: \(String(format: "%.1f", settings.waterLiters)) л / \(String(format: "%.2f", settings.waterGoalLiters)) л")
-                                ProgressView(value: settings.waterLiters, total: max(settings.waterGoalLiters, 0.25))
+                                GradientProgressBar(value: settings.waterLiters, total: max(settings.waterGoalLiters, 0.25), color: Color(red: 0.30, green: 0.58, blue: 1.00))
                                 Slider(value: Binding(get: { settings.waterLiters }, set: { v in updateSettings { s in s.waterLiters = v } }), in: 0...5, step: 0.25)
                             }
                             Text("Множитель XP: x\(String(format: "%.1f", sleepWaterMultiplier()))")
@@ -42,18 +42,21 @@ struct DailiesView: View {
                             Stepper("Цель воды: \(String(format: "%.2f", settings.waterGoalLiters)) л", value: Binding(get: { settings.waterGoalLiters }, set: { v in updateSettings { s in s.waterGoalLiters = v } }), in: 0.5...4, step: 0.25)
                             Button("Сбросить сон и воду") { updateSettings { s in s.sleepHours = 0; s.waterLiters = 0 } }
                         }
-                        .padding(8)
-                        .background(Color.blue.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(TwentyOneTab.dailies.theme.card.opacity(0.92)))
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
                     }
                 }
                 Section("Задание дня") {
                     if let daily = randomDaily {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(daily.title)
-                            Text("Награда: \(daily.xpReward) XP, \(daily.pesetasReward) P").font(.caption).foregroundStyle(.secondary)
-                            Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.disabled(completedToday(daily))
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 6) { Image(systemName: "sparkles").foregroundStyle(AppPalette.gold); Text("ЗАДАНИЕ ДНЯ").font(.system(size: 11, weight: .black)).tracking(1.5).foregroundStyle(AppPalette.parchment) }
+                            Text(daily.title).font(.system(size: 17, weight: .bold, design: .rounded))
+                            HStack(spacing: 8) { StatPill(icon: "star.fill", text: "\(daily.xpReward) XP", color: TwentyOneTab.dailies.theme.accent); StatPill(icon: "banknote.fill", text: "\(daily.pesetasReward) P", color: AppPalette.gold) }
+                            Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.buttonStyle(.borderedProminent).tint(TwentyOneTab.dailies.theme.accent).disabled(completedToday(daily))
                         }
+                        .padding(.vertical, 6)
+                        .listRowBackground(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(TwentyOneTab.dailies.theme.heroGradient).overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1)))
                     } else { Button("Сгенерировать") { ensureRandomDaily() } }
                 }
                 Section("Создать дейлик") {
@@ -77,20 +80,26 @@ struct DailiesView: View {
                 }
                 Section("Дейлики") {
                     ForEach(regularDailies, id: \.id) { daily in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(daily.title)
-                            if let name = subName(daily) { Text("Подхарактеристика: \(name)").font(.caption).foregroundStyle(.secondary) }
-                            Text("Награда: \(daily.xpReward) XP, \(daily.pesetasReward) P").font(.caption).foregroundStyle(.secondary)
-                            Text("Дедлайн: \(daily.deadlineTime) · Стрик: \(daily.streak) дн. · Пропусков подряд: \(daily.consecutiveMisses)").font(.caption).foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(daily.title).font(.system(size: 16, weight: .semibold, design: .rounded))
+                            if let name = subName(daily) { StatPill(icon: "chart.bar.fill", text: name, color: TwentyOneTab.dailies.theme.accent) }
+                            HStack(spacing: 8) { StatPill(icon: "star.fill", text: "\(daily.xpReward) XP", color: TwentyOneTab.dailies.theme.accent); StatPill(icon: "banknote.fill", text: "\(daily.pesetasReward) P", color: AppPalette.gold); if daily.streak > 0 { StatPill(icon: "flame.fill", text: "\(daily.streak) дн.", color: Color(red: 1.00, green: 0.55, blue: 0.20)) } }
+                            Text("Дедлайн: \(daily.deadlineTime) · Пропусков подряд: \(daily.consecutiveMisses)").font(.caption).foregroundStyle(.secondary)
                             Text("После дедлайна: награда /2, стрик не растёт, +1 к подхарактеристике сохраняется").font(.caption).foregroundStyle(.secondary)
-                            Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.disabled(completedToday(daily))
-                            Button(focusButtonText(daily)) { toggleFocus(daily) }.disabled(completedToday(daily))
+                            HStack(spacing: 10) {
+                                Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.buttonStyle(.borderedProminent).tint(TwentyOneTab.dailies.theme.accent).disabled(completedToday(daily))
+                                Button(focusButtonText(daily)) { toggleFocus(daily) }.buttonStyle(.bordered).tint(TwentyOneTab.dailies.theme.accent).disabled(completedToday(daily))
+                            }
                         }
+                        .padding(.vertical, 4)
+                        .listRowBackground(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(TwentyOneTab.dailies.theme.card.opacity(0.92)))
                     }
                     .onDelete { offsets in deleteDailies(at: offsets) }
                 }
             }
             .scrollContentBackground(.hidden)
+            .background(TwentyOneTab.dailies.theme.gradient)
+            .tint(TwentyOneTab.dailies.theme.accent)
             .navigationTitle("Дейлики")
             .onAppear { ensureUser(); ensureSettings(); applyMissPenalties(); ensureRandomDaily() }
             .alert("Новый уровень!", isPresented: $showLevelUp) { Button("OK", role: .cancel) {} }

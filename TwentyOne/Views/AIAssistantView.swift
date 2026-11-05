@@ -25,7 +25,7 @@ struct AIAssistantView: View {
                 }.padding(.horizontal)
                 SwiftUI.List(messages) { line in
                     VStack(alignment: .leading) {
-                        Text(line.role).font(.caption).foregroundStyle(.secondary)
+                        Text(line.role).font(.system(size: 11, weight: .black)).tracking(1).foregroundStyle(line.role == "Вы" ? TwentyOneTab.assistant.theme.accent : AppPalette.gold)
                         Text(line.text)
                     }
                 }
@@ -40,6 +40,8 @@ struct AIAssistantView: View {
                     Button(isLoading ? "..." : "Отправить") { send(input) }.disabled(input.isEmpty || isLoading)
                 }.padding()
             }
+            .background(TwentyOneTab.assistant.theme.gradient.ignoresSafeArea())
+            .tint(TwentyOneTab.assistant.theme.accent)
             .navigationTitle("ИИ-ассистент")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Закрыть") { dismiss() } } }
             .onAppear { ensureSettings() }
