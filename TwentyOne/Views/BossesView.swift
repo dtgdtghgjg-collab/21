@@ -11,7 +11,15 @@ struct BossesView: View {
     @State private var lastDamage = 0
     @State private var exportURL: URL?
     var user: User? { users.first }
-    var profilePower: Int { guard let user = user else { return 0 }; return user.attributes.reduce(0) { $0 + $1.total } + user.equipped.reduce(0) { $0 + $1.statModifiers.reduce(0) { $0 + $1.value } } }
+    var profilePower: Int {
+        guard let user = user else { return 0 }
+        let attributesPower: Int = user.attributes.reduce(0) { $0 + $1.total }
+        let equippedPower: Int = user.equipped.reduce(0) { equippedSum, item in
+            let itemPower: Int = item.statModifiers.reduce(0) { $0 + $1.value }
+            return equippedSum + itemPower
+        }
+        return attributesPower + equippedPower
+    }
     var currentBoss: Boss? { bosses.filter { !$0.isDefeated && !$0.departed }.sorted { ($0.orderIndex ?? Int.max) < ($1.orderIndex ?? Int.max) }.first }
     var campaignBosses: [Boss] { bosses.filter { $0.orderIndex != nil && !$0.departed }.sorted { ($0.orderIndex ?? 0) < ($1.orderIndex ?? 0) } }
     var freeBosses: [Boss] { bosses.filter { $0.orderIndex == nil && !$0.departed } }
@@ -19,7 +27,11 @@ struct BossesView: View {
         NavigationStack {
             SwiftUI.List {
                 Section("Текущий босс") { if let boss = currentBoss { bossRow(boss) } else { Text("Все боссы побеждены") } }
-                Section("Сила профиля") { Text("Суммарная сила: " + String(profilePower)); Text("Уровень: " + String(user?.level ?? 1)); Text("HP, требование и награды босса пересчитываются под эту силу при его появлении") }
+                Section("Сила профиля") {
+                    Text("Суммарная сила: \(profilePower)")
+                    Text("Уровень: \(user?.level ?? 1)")
+                    Text("HP, требование и награды босса пересчитываются под эту силу при его появлении")
+                }
             }
             .scrollContentBackground(.hidden)
             .navigationTitle("Боссы")
@@ -49,7 +61,12 @@ struct BossesView: View {
         RealmStore.write { realm in
             guard let liveUser = RealmStore.user(in: realm) else { return }
             let active = realm.objects(Boss.self).filter { !$0.isDefeated && !$0.departed }.sorted { ($0.orderIndex ?? Int.max) < ($1.orderIndex ?? Int.max) }
-            let power = liveUser.attributes.reduce(0) { $0 + $1.total } + liveUser.equipped.reduce(0) { $0 + $1.statModifiers.reduce(0) { $0 + $1.value } }
+            let attributesPower: Int = liveUser.attributes.reduce(0) { $0 + $1.total }
+            let equippedPower: Int = liveUser.equipped.reduce(0) { equippedSum, item in
+                let itemPower: Int = item.statModifiers.reduce(0) { $0 + $1.value }
+                return equippedSum + itemPower
+            }
+            let power: Int = attributesPower + equippedPower
             let hp = max(10, power) * 5 + liveUser.level * 50
             let strongest = liveUser.attributes.max { $0.total < $1.total }
             if let boss = active.first { if boss.lastAttemptDate == nil { boss.maxHp = hp; boss.hp = hp; boss.requiredAttributeName = strongest?.name ?? ""; boss.requiredAttributeValue = max(0, (strongest?.total ?? 0) / 2); boss.rewardsPesetas = hp / 2; boss.rewardsXp = hp / 10 }; return }

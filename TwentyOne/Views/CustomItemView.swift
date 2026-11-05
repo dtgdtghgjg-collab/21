@@ -16,7 +16,14 @@ struct CustomItemView: View {
     @State private var imageData: Data?
     @State private var created = false
     var user: User? { users.first }
-    var allStatNames: [String] { let subs = user?.attributes.flatMap { Array($0.subAttributes).map { $0.name } } ?? []; let base = ["Логика", "Память", "Скорость мышления", "Критическое мышление", "Креативность", "Дисциплина", "Мотивация", "Физическая сила", "Выносливость", "Реакция", "Точность", "Интуиция"]; return Array(Set(base + subs)).sorted() }
+    var allStatNames: [String] {
+        let subs: [String] = user?.attributes.flatMap { attr -> [String] in
+            Array(attr.subAttributes).map { $0.name }
+        } ?? []
+        let base: [String] = ["Логика", "Память", "Скорость мышления", "Критическое мышление", "Креативность", "Дисциплина", "Мотивация", "Физическая сила", "Выносливость", "Реакция", "Точность", "Интуиция"]
+        let combined: [String] = base + subs
+        return Array(Set(combined)).sorted()
+    }
     var perkPrice: Int {
         switch perkEffect {
         case "double_xp": return 5000

@@ -14,7 +14,24 @@ final class AppTheme: ObservableObject {
     init() { let d = UserDefaults.standard; accentName = d.string(forKey: "accentName") ?? "blue"; isDark = d.object(forKey: "isDark") as? Bool ?? true; wallpaperPath = d.string(forKey: "wallpaperPath") ?? ""; wallpaperAllScreens = d.bool(forKey: "wallpaperAllScreens"); wallpaperProfilePath = d.string(forKey: "wallpaperProfile") ?? ""; wallpaperDailiesPath = d.string(forKey: "wallpaperDailies") ?? ""; wallpaperCalendarPath = d.string(forKey: "wallpaperCalendar") ?? ""; wallpaperItemsPath = d.string(forKey: "wallpaperItems") ?? ""; wallpaperBossesPath = d.string(forKey: "wallpaperBosses") ?? "" }
     var colorScheme: ColorScheme { isDark ? .dark : .light }
     var accentColor: Color { switch accentName { case "red": return .red; case "green": return .green; case "purple": return .purple; case "orange": return .orange; default: return .blue } }
-    func wallpaperPath(for tab: Int) -> String { let perTab: String; switch tab { case 0: perTab = wallpaperProfilePath; case 1: perTab = wallpaperDailiesPath; case 2: perTab = wallpaperCalendarPath; case 3: perTab = wallpaperItemsPath; case 4: perTab = wallpaperBossesPath; default: perTab = "" }; if !perTab.isEmpty { return perTab }; if wallpaperAllScreens && !wallpaperPath.isEmpty { return wallpaperPath }; if tab >= 0 && tab < AppTheme.bundledWallpapers.count { return "bundled:" + AppTheme.bundledWallpapers[tab] }; return wallpaperPath }
+    func wallpaperPath(for tab: Int) -> String {
+        let perTab: String
+        switch tab {
+        case 0: perTab = wallpaperProfilePath
+        case 1: perTab = wallpaperDailiesPath
+        case 2: perTab = wallpaperCalendarPath
+        case 3: perTab = wallpaperItemsPath
+        case 4: perTab = wallpaperBossesPath
+        default: perTab = ""
+        }
+        if !perTab.isEmpty { return perTab }
+        if wallpaperAllScreens && !wallpaperPath.isEmpty { return wallpaperPath }
+        if tab >= 0 && tab < AppTheme.bundledWallpapers.count {
+            let bundledName: String = AppTheme.bundledWallpapers[tab]
+            return "bundled:\(bundledName)"
+        }
+        return wallpaperPath
+    }
     func setWallpaper(_ path: String, for tab: Int) { switch tab { case 0: wallpaperProfilePath = path; case 1: wallpaperDailiesPath = path; case 2: wallpaperCalendarPath = path; case 3: wallpaperItemsPath = path; case 4: wallpaperBossesPath = path; default: wallpaperPath = path } }
     func clearWallpaper(for tab: Int) { setWallpaper("", for: tab) }
     func wallpaperImage(for tab: Int) -> UIImage? { let path = wallpaperPath(for: tab); if path.hasPrefix("bundled:") { return UIImage(named: String(path.dropFirst(8))) }; if !path.isEmpty { return UIImage(contentsOfFile: path) }; return nil }

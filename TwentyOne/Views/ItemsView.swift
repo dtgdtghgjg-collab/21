@@ -264,7 +264,7 @@ struct ItemsView: View {
                 else { blackMarketView }
             }
             .navigationTitle("Предметы")
-            .alert("Из лутбокса выпало", isPresented: $showLootboxResult, presenting: lootboxResult) { _ in Button("Забрать", role: .cancel) {} } message: { catalog in Text(catalog.name + " [" + catalog.rank + "] - " + catalog.slot + ": " + catalog.statName + " +" + String(catalog.statPoints)) }
+            .alert("Из лутбокса выпало", isPresented: $showLootboxResult, presenting: lootboxResult) { _ in Button("Забрать", role: .cancel) {} } message: { catalog in Text("\(catalog.name) [\(catalog.rank)] - \(catalog.slot): \(catalog.statName) +\(catalog.statPoints)") }
             .onAppear { ensureUser(); ensureSettings(); ensureFirstItem(); ensureBlackMarketSchedule() }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [UTType(filenameExtension: "json21") ?? .json]) { result in if let url = try? result.get() { importMessage = Json21Service.importFile(url) } }
         }
@@ -283,7 +283,7 @@ struct ItemsView: View {
             Section("Экипировано") {
                 if let user = user {
                     if user.equipped.isEmpty { Text("Ничего не экипировано").font(.caption).foregroundStyle(.secondary) }
-                    else { Text(user.equipped.map { $0.name + " (" + $0.slot + ")" }.joined(separator: ", ")) }
+                    else { Text(user.equipped.map { (item: Item) -> String in "\(item.name) (\(item.slot))" }.joined(separator: ", ")) }
                 }
             }
             Section("Мои предметы") {
