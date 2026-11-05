@@ -4,6 +4,7 @@
 <dict>
 <key>CFBundleExecutable</key><string>TwentyOne</string>
 <key>CFBundleDisplayName</key><string>21</string>
+<key>CFBundleIcons</key><dict><key>CFBundlePrimaryIcon</key><dict><key>CFBundleIconName</key><string>AppIcon</string></dict><key>CFBundleAlternateIcons</key><dict><key>AppIcon-Gold</key><dict><key>CFBundleIconFiles</key><array><string>AppIcon-Gold</string></array><key>UIPrerenderedIcon</key><false/></dict><key>AppIcon-Purple</key><dict><key>CFBundleIconFiles</key><array><string>AppIcon-Purple</string></array><key>UIPrerenderedIcon</key><false/></dict><key>AppIcon-Black</key><dict><key>CFBundleIconFiles</key><array><string>AppIcon-Black</string></array><key>UIPrerenderedIcon</key><false/></dict></dict></dict>
 <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
 <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
@@ -11,6 +12,7 @@
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
+<key>NSHealthShareUsageDescription</key><string>Приложение показывает количество шагов за день в трекере активности</string>
 <key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
 <key>CFBundleDocumentTypes</key><array><dict><key>CFBundleTypeName</key><string>21 Entity</string><key>CFBundleTypeRole</key><string>Editor</string><key>LSHandlerRank</key><string>Owner</string><key>LSItemContentTypes</key><array><string>app.twentyone.json21</string></array></dict></array>
 <key>UTExportedTypeDeclarations</key><array><dict><key>UTTypeIdentifier</key><string>app.twentyone.json21</string><key>UTTypeDescription</key><string>21 Entity File</string><key>UTTypeConformsTo</key><array><string>public.json</string></array><key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>json21</string></array></dict></dict></array>

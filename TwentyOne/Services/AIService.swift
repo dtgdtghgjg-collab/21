@@ -50,9 +50,12 @@ struct AIService {
         return "Ollama недоступна, локальный ответ: " + ctx
     }
     static func askOllama(prompt: String, host: String, model: String) async -> String? {
-        if host.isEmpty { return nil }
-        var base = host
+        let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedHost.isEmpty || trimmedHost.contains(" ") || trimmedHost.contains("@") { return nil }
+        var base = trimmedHost
         if !base.hasPrefix("http") { base = "http://" + base + ":11434" }
+        let allowedHost = base.hasPrefix("http://localhost") || base.hasPrefix("http://127.") || base.hasPrefix("http://192.168.") || base.hasPrefix("http://10.") || base.hasPrefix("http://172.")
+        if !allowedHost { return nil }
         guard let url = URL(string: base + "/api/generate") else { return nil }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -61,7 +64,8 @@ struct AIService {
         let body: [String: Any] = ["model": model, "prompt": prompt, "stream": false]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let response = json["response"] as? String { return response }
         } catch { return nil }
         return nil

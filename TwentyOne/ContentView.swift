@@ -15,10 +15,17 @@ struct ContentView: View {
                 ItemsView().tag(3)
                 BossesView().tag(4)
             }
+            .tabViewStyle(.page(indexDisplayMode: .never))
             .toolbar(.hidden, for: .tabBar)
             .scrollContentBackground(.hidden)
             .tint(theme.accentColor(for: tab))
             .animation(.easeInOut(duration: 0.25), value: tab)
+            .simultaneousGesture(DragGesture(minimumDistance: 70).onEnded { value in
+                guard theme.swipeEnabled, !FocusLock.isActive else { return }
+                guard abs(value.translation.width) > abs(value.translation.height) * 2 else { return }
+                if value.translation.width < -70 { tab = theme.swipeCyclic && tab == 4 ? 0 : min(tab + 1, 4) }
+                else if value.translation.width > 70 { tab = theme.swipeCyclic && tab == 0 ? 4 : max(tab - 1, 0) }
+            })
             VStack(spacing: 12) {
                 HStack {
                     Spacer()
@@ -59,6 +66,8 @@ struct ContentView: View {
     private func tabButton(_ title: String, _ icon: String, _ tag: Int) -> some View {
         let selected = tab == tag
         return Button {
+            if FocusLock.isActive && tag != tab { Haptics.error(); return }
+            Haptics.tap(); SoundService.click()
             withAnimation(.easeInOut(duration: 0.25)) { tab = tag }
         } label: {
             VStack(spacing: 3) {

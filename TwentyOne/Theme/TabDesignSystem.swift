@@ -61,6 +61,20 @@ extension View {
     func twentyCard(_ fill: Color, radius: CGFloat = 20) -> some View { modifier(TwentyCardModifier(fill: fill, radius: radius)) }
 }
 
+struct TwentyPrimaryButtonStyle: ButtonStyle {
+    let color: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.system(size: 14, weight: .bold, design: .rounded)).foregroundStyle(.white).padding(.horizontal, 16).padding(.vertical, 9).background(Capsule().fill(LinearGradient(colors: [color, color.opacity(0.62)], startPoint: .topLeading, endPoint: .bottomTrailing))).overlay(Capsule().strokeBorder(Color.white.opacity(0.25), lineWidth: 1)).shadow(color: Color.black.opacity(0.25), radius: 8, x: 0, y: 4).opacity(configuration.isPressed ? 0.75 : 1).scaleEffect(configuration.isPressed ? 0.97 : 1)
+    }
+}
+
+struct TwentySecondaryButtonStyle: ButtonStyle {
+    let color: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.system(size: 14, weight: .semibold, design: .rounded)).foregroundStyle(color).padding(.horizontal, 14).padding(.vertical, 8).background(Capsule().fill(color.opacity(0.14))).overlay(Capsule().strokeBorder(color.opacity(0.45), lineWidth: 1)).opacity(configuration.isPressed ? 0.7 : 1).scaleEffect(configuration.isPressed ? 0.97 : 1)
+    }
+}
+
 struct RankBadge: View {
     let rank: String
     var body: some View {

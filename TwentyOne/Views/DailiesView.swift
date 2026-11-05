@@ -6,6 +6,7 @@ struct DailiesView: View {
     @ObservedResults(User.self) var users
     @ObservedResults(AppSettings.self) var settingsList
     @ObservedResults(Boss.self) var bosses
+    @EnvironmentObject var theme: AppTheme
     @State private var newTitle = ""
     @State private var xpReward = 10
     @State private var pesetasReward = 50
@@ -14,6 +15,7 @@ struct DailiesView: View {
     @State private var selectedSkillId: String?
     @State private var showLevelUp = false
     @State private var showCrystallized = false
+    @State private var stepsToday: Int?
     var user: User? { users.first }
     var settings: AppSettings? { settingsList.first }
     var allSubs: [SubAttribute] { user?.attributes.flatMap { Array($0.subAttributes) } ?? [] }
@@ -37,6 +39,7 @@ struct DailiesView: View {
                                 GradientProgressBar(value: settings.waterLiters, total: max(settings.waterGoalLiters, 0.25), color: Color(red: 0.30, green: 0.58, blue: 1.00))
                                 Slider(value: Binding(get: { settings.waterLiters }, set: { v in updateSettings { s in s.waterLiters = v } }), in: 0...5, step: 0.25)
                             }
+                            if let stepsToday = stepsToday { Text("Шаги сегодня: \(stepsToday) / 8000"); GradientProgressBar(value: Double(stepsToday), total: 8000, color: Color(red: 0.98, green: 0.55, blue: 0.20)) } else { Button("Показать шаги за день") { StepsService.shared.requestAndFetch { steps in self.stepsToday = steps } } }
                             Text("Множитель XP: x\(String(format: "%.1f", sleepWaterMultiplier()))")
                             Stepper("Цель сна: \(String(format: "%.1f", settings.sleepGoalHours)) ч", value: Binding(get: { settings.sleepGoalHours }, set: { v in updateSettings { s in s.sleepGoalHours = v } }), in: 4...12, step: 0.5)
                             Stepper("Цель воды: \(String(format: "%.2f", settings.waterGoalLiters)) л", value: Binding(get: { settings.waterGoalLiters }, set: { v in updateSettings { s in s.waterGoalLiters = v } }), in: 0.5...4, step: 0.25)
@@ -53,12 +56,16 @@ struct DailiesView: View {
                             HStack(spacing: 6) { Image(systemName: "sparkles").foregroundStyle(AppPalette.gold); Text("ЗАДАНИЕ ДНЯ").font(.system(size: 11, weight: .black)).tracking(1.5).foregroundStyle(AppPalette.parchment) }
                             Text(daily.title).font(.system(size: 17, weight: .bold, design: .rounded))
                             HStack(spacing: 8) { StatPill(icon: "star.fill", text: "\(daily.xpReward) XP", color: TwentyOneTab.dailies.theme.accent); StatPill(icon: "banknote.fill", text: "\(daily.pesetasReward) P", color: AppPalette.gold) }
-                            Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.buttonStyle(.borderedProminent).tint(TwentyOneTab.dailies.theme.accent).disabled(completedToday(daily))
+                            Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.buttonStyle(TwentyPrimaryButtonStyle(color: TwentyOneTab.dailies.theme.accent)).disabled(completedToday(daily))
                         }
                         .padding(.vertical, 6)
                         .listRowBackground(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(TwentyOneTab.dailies.theme.heroGradient).overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.white.opacity(0.12), lineWidth: 1)))
                     } else { Button("Сгенерировать") { ensureRandomDaily() } }
                 }
+                Section("Ежедневные квесты") { DailyQuestsView() }
+                Section("Награда за серию") { StreakRewardView() }
+                Section("Фокус Pomodoro") { FocusTimerView() }
+                Section("Сундук за шаги") { if let stepsToday = stepsToday { StepsChestView(steps: stepsToday) } else { Text("Сначала покажи шаги в трекере выше").font(.caption).foregroundStyle(.secondary) } }
                 Section("Создать дейлик") {
                     TextField("Название", text: $newTitle)
                     Text("XP: \(xpReward)")
@@ -87,8 +94,8 @@ struct DailiesView: View {
                             Text("Дедлайн: \(daily.deadlineTime) · Пропусков подряд: \(daily.consecutiveMisses)").font(.caption).foregroundStyle(.secondary)
                             Text("После дедлайна: награда /2, стрик не растёт, +1 к подхарактеристике сохраняется").font(.caption).foregroundStyle(.secondary)
                             HStack(spacing: 10) {
-                                Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.buttonStyle(.borderedProminent).tint(TwentyOneTab.dailies.theme.accent).disabled(completedToday(daily))
-                                Button(focusButtonText(daily)) { toggleFocus(daily) }.buttonStyle(.bordered).tint(TwentyOneTab.dailies.theme.accent).disabled(completedToday(daily))
+                                Button(completedToday(daily) ? "Выполнено сегодня" : "Выполнить") { completeDaily(daily) }.buttonStyle(TwentyPrimaryButtonStyle(color: TwentyOneTab.dailies.theme.accent)).disabled(completedToday(daily))
+                                Button(focusButtonText(daily)) { toggleFocus(daily) }.buttonStyle(TwentySecondaryButtonStyle(color: TwentyOneTab.dailies.theme.accent)).disabled(completedToday(daily))
                             }
                         }
                         .padding(.vertical, 4)
@@ -98,10 +105,10 @@ struct DailiesView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(TwentyOneTab.dailies.theme.gradient)
+            .background(theme.background(for: 1))
             .tint(TwentyOneTab.dailies.theme.accent)
             .navigationTitle("Дейлики")
-            .onAppear { ensureUser(); ensureSettings(); applyMissPenalties(); ensureRandomDaily() }
+            .onAppear { ensureUser(); ensureSettings(); applyMissPenalties(); ensureRandomDaily(); StepsService.shared.fetchTodaySteps { steps in self.stepsToday = steps } }
             .alert("Новый уровень!", isPresented: $showLevelUp) { Button("OK", role: .cancel) {} }
             .alert("Навык кристаллизовался в пассивный!", isPresented: $showCrystallized) { Button("OK", role: .cancel) {} }
         }
@@ -131,7 +138,7 @@ struct DailiesView: View {
         guard let realm = try? Realm() else { return }
         try? realm.write {
             if realm.objects(AppSettings.self).isEmpty { realm.add(AppSettings()) }
-            if let s = realm.objects(AppSettings.self).first { if let d = s.trackerDate, !Calendar.current.isDateInToday(d) { s.sleepHours = 0; s.waterLiters = 0 }; s.trackerDate = Date() }
+            if let s = realm.objects(AppSettings.self).first { if let d = s.trackerDate, !Calendar.current.isDateInToday(d) { if s.sleepHours > 0 || s.waterLiters > 0 { let entry = HistoryEntry(); entry.kind = "tracker_day"; entry.text = "Трекер за \(d.formatted(date: .abbreviated, time: .omitted)): сон \(String(format: "%.1f", s.sleepHours)) ч, вода \(String(format: "%.2f", s.waterLiters)) л"; entry.date = d; realm.add(entry) }; s.sleepHours = 0; s.waterLiters = 0 }; s.trackerDate = Date() }
         }
     }
     func updateSettings(_ change: @escaping (AppSettings) -> Void) { RealmStore.write { realm in if let s = RealmStore.settings(in: realm) { change(s) } } }
@@ -196,6 +203,7 @@ struct DailiesView: View {
     }
     func completeDaily(_ daily: Daily) {
         guard let user = user else { return }
+        Haptics.medium(); SoundService.pop()
         let dailyId = daily.id
         let userId = user.id
         let subIdString = daily.subAttributeId
@@ -213,7 +221,7 @@ struct DailiesView: View {
         var perkXpMultiplier = 1.0; var perkPesetasMultiplier = 1.0
         let name = subName(daily) ?? ""
         for item in user.equipped { for perk in item.perks where perk.trigger == "on_task_complete" { if perk.effect == "double_xp" { perkXpMultiplier *= 2 }; if perk.effect == "double_pesetas" { perkPesetasMultiplier *= 2 }; if perk.effect == "double_xp_if_category_logic" && perk.params == name { perkXpMultiplier *= 2 } } }
-        let xpEarned = Int((Double(daily.xpReward) * totalMultiplier * perkXpMultiplier).rounded(.down))
+        let xpEarned = Int((Double(daily.xpReward) * totalMultiplier * perkXpMultiplier * PetService.shared.xpMultiplier).rounded(.down))
         let pesetasEarned = Int((Double(daily.pesetasReward) * totalMultiplier * perkPesetasMultiplier).rounded(.down))
         var leveledUp = false; var crystallized = false
         RealmStore.write { realm in

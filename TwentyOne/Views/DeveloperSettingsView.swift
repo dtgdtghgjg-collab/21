@@ -3,6 +3,7 @@ import RealmSwift
 
 struct DeveloperSettingsView: View {
     @ObservedResults(User.self) var users
+    @EnvironmentObject var theme: AppTheme
     var user: User? { users.first }
     var body: some View {
         SwiftUI.List {
@@ -25,7 +26,7 @@ struct DeveloperSettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(TwentyOneTab.bosses.theme.gradient)
+        .background(theme.background(for: 0))
         .tint(TwentyOneTab.bosses.theme.accent)
         .navigationTitle("Настройки разработчика")
     }

@@ -10,6 +10,7 @@ struct BossesView: View {
     @State private var showVictory = false
     @State private var lastDamage = 0
     @State private var exportURL: URL?
+    @EnvironmentObject var theme: AppTheme
     var user: User? { users.first }
     var profilePower: Int {
         guard let user = user else { return 0 }
@@ -34,6 +35,7 @@ struct BossesView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .background(theme.background(for: 4))
             .navigationTitle("Боссы")
             .onAppear { ensureUser(); ensureCurrentBoss(); processEventBosses() }
             .alert("Босс побеждён!", isPresented: $showVictory) { Button("OK", role: .cancel) {} }
@@ -48,6 +50,7 @@ struct BossesView: View {
             if !boss.requiredAttributeName.isEmpty { Text("Нужно: \(boss.requiredAttributeName) \(boss.requiredAttributeValue), у вас \(attributeTotal(boss.requiredAttributeName))").font(.caption).foregroundStyle(.secondary) }
             if isHarming(boss) { Text("Босс вредит: -20 P в день и -10% к наградам дейликов").font(.caption).foregroundStyle(.red) }
             Text("Награда: \(boss.rewardsPesetas) P, \(boss.rewardsXp) XP").font(.caption).foregroundStyle(.secondary)
+            if let user = user, !BossPerks.activeDescriptions(for: user).isEmpty { Text("Навыки против босса: \(BossPerks.activeDescriptions(for: user).joined(separator: ", "))").font(.caption).foregroundStyle(TwentyOneTab.bosses.theme.accent) }
             Button("Экспорт .json21") { exportURL = Json21Service.exportBossFile(boss) }
             if let exportURL = exportURL { ShareLink(item: exportURL) { Text("Поделиться .json21") } }
             if boss.isDefeated { Text("Побеждён").foregroundStyle(.green) }
@@ -86,7 +89,7 @@ struct BossesView: View {
         guard let user = user else { return 10 }
         var base = 0
         if !boss.requiredAttributeName.isEmpty, let attr = user.attributes.first(where: { $0.name == boss.requiredAttributeName }) { base += attr.total; for item in user.equipped { for sub in attr.subAttributes { base += item.statModifiers[sub.name] ?? 0 } } } else { for attr in user.attributes { base += attr.total } }
-        let bonus = min(0.5, Double(longestStreak()) * 0.02)
+        let bonus = min(0.5, Double(longestStreak()) * 0.02) + BossPerks.bonus(for: user)
         return max(10, Int((Double(base) * (1 + bonus)).rounded(.down)))
     }
     func isBlocked(_ boss: Boss) -> Bool { let linked = events.filter { $0.linkedBossId == boss.id.stringValue || (boss.calendarEventLink != nil && $0.id.stringValue == boss.calendarEventLink) }; for event in linked { if let dailyId = event.linkedDailyId, let daily = dailies.first(where: { $0.id.stringValue == dailyId }), daily.lastCompletedDay == nil { return true } }; return false }

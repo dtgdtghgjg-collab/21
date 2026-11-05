@@ -3,6 +3,7 @@ import RealmSwift
 
 struct StatsSkillsView: View {
     @ObservedResults(User.self) var users
+    @EnvironmentObject var theme: AppTheme
     @State private var newSubName = ""
     @State private var newSubCap = 20
     @State private var newSkillName = ""
@@ -41,7 +42,7 @@ struct StatsSkillsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(TwentyOneTab.profile.theme.gradient)
+        .background(theme.background(for: 0))
         .tint(TwentyOneTab.profile.theme.accent)
         .navigationTitle("Характеристики и навыки")
         .onAppear { ensureUserAndAttributes() }

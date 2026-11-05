@@ -3,6 +3,7 @@ import RealmSwift
 
 struct ActivityView: View {
     @ObservedResults(HistoryEntry.self, sortDescriptor: SortDescriptor(keyPath: "date", ascending: false)) var entries
+    @EnvironmentObject var theme: AppTheme
     var body: some View {
         SwiftUI.List {
             Section("Теплокарта (год)") {
@@ -12,6 +13,7 @@ struct ActivityView: View {
                     }
                 }
             }
+            Section("По дням недели") { WeekdayStatsView(entries: Array(entries)) }
             Section("Журнал") {
                 if entries.isEmpty { Text("Пока пусто").font(.caption).foregroundStyle(.secondary) }
                 ForEach(entries, id: \.id) { entry in
@@ -23,7 +25,7 @@ struct ActivityView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(TwentyOneTab.history.theme.gradient)
+        .background(theme.background(for: 2))
         .tint(TwentyOneTab.history.theme.accent)
         .navigationTitle("История и активность")
     }

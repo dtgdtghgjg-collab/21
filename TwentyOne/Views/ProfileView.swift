@@ -1,6 +1,7 @@
 import SwiftUI
 import RealmSwift
 import PhotosUI
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
     @ObservedResults(User.self) var users
@@ -16,6 +17,9 @@ struct ProfileView: View {
     @EnvironmentObject var theme: AppTheme
     @State private var selectedWallpaper: PhotosPickerItem?
     @State private var wallpaperTab: Int = 0
+    @State private var backupURL: URL?
+    @State private var showBackupImporter = false
+    @State private var backupMessage: String?
 
     var user: User? {
         users.first
@@ -33,8 +37,10 @@ struct ProfileView: View {
         NavigationStack {
             SwiftUI.List {
                 headerSection
+                petSection
                 linksSection
                 appearanceSection
+                backupSection
                 if let user = user {
                     levelBalanceSection(user)
                     loanSection(user)
@@ -43,7 +49,7 @@ struct ProfileView: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(TwentyOneTab.profile.theme.gradient)
+            .background(theme.background(for: 0))
             .tint(TwentyOneTab.profile.theme.accent)
             .navigationTitle("Профиль")
             .onAppear {
@@ -61,6 +67,7 @@ struct ProfileView: View {
             .onChange(of: selectedWallpaper) { _, item in
                 loadWallpaper(from: item)
             }
+            .fileImporter(isPresented: $showBackupImporter, allowedContentTypes: [UTType(filenameExtension: "json21") ?? .json]) { result in if let url = try? result.get() { let ok = ProgressBackupService.importURL(url); backupMessage = ok ? "Прогресс импортирован" : "Не удалось импортировать прогресс"; if ok { Haptics.success(); SoundService.success() } else { Haptics.error() } } }
             .alert("Новый уровень!", isPresented: $showLevelUp) {
                 Button("OK", role: .cancel) {}
             }
@@ -80,7 +87,7 @@ struct ProfileView: View {
                     }
                 }
                 HStack(spacing: 10) {
-                    Button("Сохранить профиль") { saveProfile() }.buttonStyle(.borderedProminent).tint(TwentyOneTab.profile.theme.accent)
+                    Button("Сохранить профиль") { saveProfile() }.buttonStyle(TwentyPrimaryButtonStyle(color: TwentyOneTab.profile.theme.accent))
                     PhotosPicker(selection: $selectedPhoto, matching: .images) { Text("Выбрать аватар") }
                 }
             }
@@ -90,9 +97,28 @@ struct ProfileView: View {
     }
 
     @ViewBuilder
+    private var backupSection: some View {
+        Section("Прогресс") {
+            Button("Экспортировать прогресс") { backupURL = ProgressBackupService.exportURL(); Haptics.tap(); SoundService.coin() }
+            if let backupURL = backupURL { ShareLink(item: backupURL) { Text("Поделиться файлом прогресса") } }
+            Button("Импортировать прогресс") { showBackupImporter = true }
+            if let backupMessage = backupMessage { Text(backupMessage).font(.caption).foregroundStyle(.secondary) }
+        }
+    }
+
+    @ViewBuilder
+    private var petSection: some View {
+        Section("Питомец") { PetView() }
+    }
+
+    @ViewBuilder
     private var appearanceSection: some View {
         Section("Оформление") {
             Toggle("Тёмная тема", isOn: Binding(get: { theme.isDark }, set: { theme.isDark = $0 }))
+            Toggle("Свайпы между вкладками", isOn: Binding(get: { theme.swipeEnabled }, set: { theme.swipeEnabled = $0 }))
+            Toggle("Свайпы по кругу", isOn: Binding(get: { theme.swipeCyclic }, set: { theme.swipeCyclic = $0 })).disabled(!theme.swipeEnabled)
+            Toggle("Звуки интерфейса", isOn: Binding(get: { SoundService.enabled }, set: { UserDefaults.standard.set($0, forKey: "soundsEnabled") }))
+            Picker("Иконка приложения", selection: Binding(get: { AppIconService.currentName }, set: { AppIconService.setIcon($0) })) { Text("Стандартная").tag("default"); Text("Золотая").tag("AppIcon-Gold"); Text("Фиолетовая").tag("AppIcon-Purple"); Text("Чёрная").tag("AppIcon-Black") }
             Picker("Акцент", selection: Binding(get: { theme.accentName }, set: { theme.accentName = $0 })) {
                 Text("Синий").tag("blue")
                 Text("Красный").tag("red")
@@ -234,13 +260,13 @@ struct ProfileView: View {
                     .scaledToFill()
                     .frame(width: 76, height: 76)
                     .clipShape(Circle())
-                    .overlay(Circle().strokeBorder(Color.white.opacity(0.30), lineWidth: 2))
+                    .overlay(Circle().strokeBorder(StreakRewardService.frameUnlocked ? AppPalette.gold : Color.white.opacity(0.30), lineWidth: StreakRewardService.frameUnlocked ? 4 : 2))
             } else {
                 Circle()
                     .fill(TwentyOneTab.profile.theme.accentGradient)
                     .frame(width: 76, height: 76)
                     .overlay(Text("\(name.prefix(1))").foregroundStyle(.white).font(.system(size: 30, weight: .bold, design: .rounded)))
-                    .overlay(Circle().strokeBorder(Color.white.opacity(0.30), lineWidth: 2))
+                    .overlay(Circle().strokeBorder(StreakRewardService.frameUnlocked ? AppPalette.gold : Color.white.opacity(0.30), lineWidth: StreakRewardService.frameUnlocked ? 4 : 2))
             }
         }
         .shadow(color: Color.black.opacity(0.30), radius: 10, x: 0, y: 5)

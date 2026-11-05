@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct MusicSettingsView: View {
     @ObservedResults(AppSettings.self) var settingsList
+    @EnvironmentObject var theme: AppTheme
     @State private var importingTab: Int?
     @State private var showImporter = false
     var settings: AppSettings? { settingsList.first }
@@ -38,7 +39,7 @@ struct MusicSettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(TwentyOneTab.profile.theme.gradient)
+        .background(theme.background(for: 0))
         .tint(TwentyOneTab.profile.theme.accent)
         .navigationTitle("Музыка")
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.audio]) { result in

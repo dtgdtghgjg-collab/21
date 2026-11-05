@@ -242,6 +242,7 @@ struct ItemsView: View {
     @ObservedResults(User.self) var users
     @ObservedResults(AppSettings.self) var settingsList
     @State private var selectedTab = 0
+    @EnvironmentObject var theme: AppTheme
     @State private var showImporter = false
     @State private var importMessage: String?
     @State private var exportURL: URL?
@@ -296,9 +297,9 @@ struct ItemsView: View {
                             Text("Прочность \(item.durability)/\(item.maxDurability)").font(.caption).foregroundStyle(.secondary)
                             GradientProgressBar(value: Double(item.durability), total: Double(max(item.maxDurability, 1)), color: TwentyOneTab.market.theme.accent, height: 8)
                             HStack(spacing: 8) {
-                                Button(item.isEquipped ? "Снять" : "Экипировать") { toggleEquip(item) }.buttonStyle(.borderedProminent).tint(TwentyOneTab.market.theme.accent)
-                                Button("Переработать (+\(recycleValue(item)) P)") { recycle(item) }.buttonStyle(.bordered)
-                                Button("Экспорт .json21") { exportURL = Json21Service.exportItemFile(item) }.buttonStyle(.bordered)
+                                Button(item.isEquipped ? "Снять" : "Экипировать") { toggleEquip(item) }.buttonStyle(TwentyPrimaryButtonStyle(color: TwentyOneTab.market.theme.accent))
+                                Button("Переработать (+\(recycleValue(item)) P)") { recycle(item) }.buttonStyle(TwentySecondaryButtonStyle(color: TwentyOneTab.market.theme.accent))
+                                Button("Экспорт .json21") { exportURL = Json21Service.exportItemFile(item) }.buttonStyle(TwentySecondaryButtonStyle(color: TwentyOneTab.market.theme.accent))
                             }.font(.caption)
                         }
                     }
@@ -317,7 +318,7 @@ struct ItemsView: View {
                         if !catalog.desc.isEmpty { Text(catalog.desc).font(.caption).foregroundStyle(.secondary) }
                         HStack(spacing: 6) { StatPill(icon: "tag.fill", text: catalog.slot, color: TwentyOneTab.market.theme.accent); StatPill(icon: "chart.bar.fill", text: "\(catalog.statName) +\(catalog.statPoints)", color: TwentyOneTab.market.theme.accent) }
                         HStack(spacing: 6) { StatPill(icon: "banknote.fill", text: "\(catalog.pricePesetas) P", color: AppPalette.gold); StatPill(icon: "star.fill", text: "\(catalog.priceXp) XP", color: TwentyOneTab.profile.theme.accent) }
-                        Button("Купить") { buy(catalog) }.buttonStyle(.borderedProminent).tint(TwentyOneTab.market.theme.accent).disabled((user?.pesetas ?? 0) < catalog.pricePesetas)
+                        Button("Купить") { buy(catalog) }.buttonStyle(TwentyPrimaryButtonStyle(color: TwentyOneTab.market.theme.accent)).disabled((user?.pesetas ?? 0) < catalog.pricePesetas)
                     }
                 }
                 .padding(.vertical, 6)
@@ -325,7 +326,7 @@ struct ItemsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(TwentyOneTab.market.theme.gradient)
+        .background(theme.background(for: 3))
     }
     var blackMarketView: some View {
         Group {
@@ -415,7 +416,8 @@ struct ItemsView: View {
         return days >= 7
     }
     func rollRank(level: Int) -> String {
-        let weights: [(String, Double)] = [("F", 97), ("E", 3 + Double(level) * 0.5), ("D", 0.4 + Double(level) * 0.1), ("C", 0.15), ("B", 0.07), ("A", 0.03), ("S", 0.01), ("SS", 0.005), ("SSS", 0.001), ("R", 0.0005)]
+        let levelBonus = min(Double(max(level - 1, 0)) * 0.15, 3.0)
+        let weights: [(String, Double)] = [("F", max(68 - levelBonus * 2, 55)), ("E", 20 + levelBonus), ("D", 8 + levelBonus * 0.5), ("C", 2.5), ("B", 1.0), ("A", 0.35), ("S", 0.12), ("SS", 0.025), ("SSS", 0.004), ("R", 0.001)]
         let total = weights.reduce(0) { $0 + $1.1 }
         var r = Double.random(in: 0..<total)
         for w in weights {
@@ -426,6 +428,7 @@ struct ItemsView: View {
     }
     func openLootbox() {
         guard let userId = user?.id else { return }
+        Haptics.medium(); SoundService.coin()
         RealmStore.write { realm in
             guard let user = realm.object(ofType: User.self, forPrimaryKey: userId), let s = RealmStore.settings(in: realm) else { return }
             openLootboxLive(user: user, settings: s, realm: realm)
@@ -433,7 +436,9 @@ struct ItemsView: View {
     }
     func openLootboxLive(user: User, settings s: AppSettings, realm: Realm) {
         if !lootboxAvailable() { return }
-        guard let catalog = regularCatalog.randomElement() else { return }
+        let rolledRank = rollRank(level: user.level)
+        let pool = regularCatalog.filter { $0.rank == rolledRank }
+        guard let catalog = (pool.isEmpty ? regularCatalog.filter { $0.rank == "F" } : pool).randomElement() else { return }
         let item = Item()
         item.name = catalog.name
         item.rank = catalog.rank

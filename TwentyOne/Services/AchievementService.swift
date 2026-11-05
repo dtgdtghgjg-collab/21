@@ -150,9 +150,15 @@ enum AchievementService {
         return s.achievementsClaimed.components(separatedBy: ",").contains(id)
     }
     static func claim(_ def: AchievementDefinition) -> Bool {
-        guard isUnlocked(def.id), !isClaimed(def.id), let realm = try? Realm(), let user = realm.objects(User.self).first, let s = realm.objects(AppSettings.self).first else { return false }
-        try? realm.write { user.pesetas += def.reward; if s.achievementsClaimed.isEmpty { s.achievementsClaimed = def.id } else { s.achievementsClaimed += "," + def.id } }
-        HistoryService.log("achievement", "Достижение: " + def.title, pesetas: def.reward)
-        return true
+        guard isUnlocked(def.id), !isClaimed(def.id), let realm = try? Realm(), let user = realm.objects(User.self).first else { return false }
+        var claimed = false
+        try? realm.write {
+            let s = realm.objects(AppSettings.self).first ?? realm.create(AppSettings.self, value: ["id": "main"])
+            user.pesetas += def.reward
+            if s.achievementsClaimed.isEmpty { s.achievementsClaimed = def.id } else { s.achievementsClaimed += "," + def.id }
+            claimed = true
+        }
+        if claimed { HistoryService.log("achievement", "Достижение: " + def.title, pesetas: def.reward) }
+        return claimed
     }
 }

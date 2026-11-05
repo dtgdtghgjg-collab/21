@@ -4,6 +4,7 @@ import PhotosUI
 
 struct CustomItemView: View {
     @ObservedResults(User.self) var users
+    @EnvironmentObject var theme: AppTheme
     @State private var name = ""
     @State private var desc = ""
     @State private var rank = "F"
@@ -89,7 +90,7 @@ struct CustomItemView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(TwentyOneTab.market.theme.gradient)
+        .background(theme.background(for: 3))
         .tint(TwentyOneTab.market.theme.accent)
         .onChange(of: selectedPhoto) { _, item in
             Task {

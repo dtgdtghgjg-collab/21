@@ -35,19 +35,20 @@ enum Json21Service {
         if doc.entity_type == "item" {
             guard let user = realm.objects(User.self).first else { return nil }
             let item = Item()
-            item.name = doc.name
-            item.rank = doc.rank ?? "F"
-            item.itemDescription = doc.description ?? ""
+            let allowedRanks: Set<String> = ["F", "E", "D", "C", "B", "A", "S", "SS", "SSS", "R"]
+            item.name = String(doc.name.prefix(80))
+            item.rank = allowedRanks.contains(doc.rank ?? "F") ? (doc.rank ?? "F") : "F"
+            item.itemDescription = String((doc.description ?? "").prefix(300))
             item.slot = doc.slot ?? "Аксессуар"
-            item.durability = doc.durability ?? 100
-            item.maxDurability = doc.durability ?? 100
+            item.durability = min(max(doc.durability ?? 100, 1), 1000)
+            item.maxDurability = item.durability
             let points = doc.stat_modifiers?.values.reduce(0, +) ?? 1
             let mult = rankMultipliers[doc.rank ?? "F"] ?? 1
             item.costPesetas = doc.cost_pesetas ?? Int(100 * Double(max(points, 1)) * mult)
             item.costXp = doc.cost_xp ?? (item.costPesetas / 5)
-            if let mods = doc.stat_modifiers { for (key, value) in mods { item.statModifiers[key] = value } }
+            if let mods = doc.stat_modifiers { for (key, value) in mods.prefix(10) { item.statModifiers[String(key.prefix(60))] = min(max(value, 0), 10) } }
             if let perks = doc.perks { for p in perks { let perk = Perk(); perk.trigger = p.trigger; perk.effect = p.effect; perk.params = p.params ?? ""; item.perks.append(perk) } }
-            if let b64 = doc.image_base64, let imageData = Data(base64Encoded: b64) {
+            if let b64 = doc.image_base64, b64.count <= 3000000, let imageData = Data(base64Encoded: b64), imageData.count <= 2000000 {
                 let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("import_" + UUID().uuidString + ".png")
                 if let path = path, (try? imageData.write(to: path)) != nil { item.imagePath = path.path }
             }
@@ -58,10 +59,11 @@ enum Json21Service {
         }
         if doc.entity_type == "boss" {
             let boss = Boss()
-            boss.name = doc.name
-            boss.rank = doc.rank ?? "F"
-            boss.hp = doc.hp ?? 100
-            boss.maxHp = doc.hp ?? 100
+            let allowedBossRanks: Set<String> = ["F", "E", "D", "C", "B", "A", "S", "SS", "SSS", "R"]
+            boss.name = String(doc.name.prefix(80))
+            boss.rank = allowedBossRanks.contains(doc.rank ?? "F") ? (doc.rank ?? "F") : "F"
+            boss.hp = min(max(doc.hp ?? 100, 10), 100000)
+            boss.maxHp = boss.hp
             boss.pixelArtAscii = doc.pixel_art_ascii ?? ""
             if let b64 = doc.image_base64, let imageData = Data(base64Encoded: b64) {
                 let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("boss_" + UUID().uuidString + ".png")
@@ -69,8 +71,8 @@ enum Json21Service {
             }
             boss.orderIndex = doc.order_index
             boss.calendarEventLink = doc.calendar_event_link
-            boss.rewardsPesetas = doc.rewards?.pesetas ?? 0
-            boss.rewardsXp = doc.rewards?.xp ?? 0
+            boss.rewardsPesetas = min(max(doc.rewards?.pesetas ?? 0, 0), 50000)
+            boss.rewardsXp = min(max(doc.rewards?.xp ?? 0, 0), 10000)
             if let attrs = doc.required_attributes { for attr in attrs { boss.requiredAttributes.append(attr) } }
             var result: String?
             try? realm.write {
