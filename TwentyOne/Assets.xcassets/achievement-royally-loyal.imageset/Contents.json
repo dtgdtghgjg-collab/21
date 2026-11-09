@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "filename": "achievement-royally-loyal.png",
+      "idiom": "universal",
+      "scale": "1x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

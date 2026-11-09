@@ -63,6 +63,7 @@ struct DailiesView: View {
                     } else { Button("Сгенерировать") { ensureRandomDaily() } }
                 }
                 Section("Ежедневные квесты") { DailyQuestsView() }
+                Section("Привычки") { HabitsView() }
                 Section("Награда за серию") { StreakRewardView() }
                 Section("Фокус Pomodoro") { FocusTimerView() }
                 Section("Сундук за шаги") { if let stepsToday = stepsToday { StepsChestView(steps: stepsToday) } else { Text("Сначала покажи шаги в трекере выше").font(.caption).foregroundStyle(.secondary) } }
@@ -236,6 +237,7 @@ struct DailiesView: View {
             }
         }
         HistoryService.log("daily_complete", "Выполнен дейлик: " + daily.title, xp: xpEarned, pesetas: pesetasEarned)
+        _ = BossDamageService.applyDailyDamage(xpReward: daily.xpReward, subAttributeId: daily.subAttributeId)
         if leveledUp { showLevelUp = true }
         if crystallized { showCrystallized = true }
     }

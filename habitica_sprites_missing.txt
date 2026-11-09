@@ -1,0 +1,8 @@
+﻿Pet_Egg_Cactus
+Pet_Egg_Rock
+Pet_Egg_Sheep
+Pet_Egg_TigerCub
+Pet_Egg_Turtle
+Pet_HatchingPotion_White
+inventory_special_greeting
+inventory_special_petalFreePotion

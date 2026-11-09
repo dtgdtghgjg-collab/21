@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "filename": "item_hab-gear-weapon-special-spring2015rogue.png",
+      "idiom": "universal",
+      "scale": "1x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

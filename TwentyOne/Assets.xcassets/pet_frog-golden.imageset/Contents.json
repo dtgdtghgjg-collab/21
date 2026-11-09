@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "filename": "pet_frog-golden.png",
+      "idiom": "universal",
+      "scale": "1x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

@@ -1,0 +1,27 @@
+import json, pathlib, re, collections
+
+ROOT = pathlib.Path('A:/opencode/21-IOS')
+ASSETS = ROOT / 'TwentyOne' / 'Assets.xcassets'
+extras = json.loads((ROOT / 'habitica_extras.json').read_text(encoding='utf-8'))
+cat_text = (ROOT / 'TwentyOne' / 'Models' / 'HabiticaCatalog.swift').read_text(encoding='utf-8')
+cat_ids = set(re.findall('CatalogItem[(]id: "([^"]+)"', cat_text))
+print('catalog ids:', len(cat_ids))
+print('seasonal entries:', len(extras['seasonal']))
+print('seasonal missing in catalog:', [e['catalog_id'] for e in extras['seasonal'] if e['catalog_id'] not in cat_ids])
+print('season labels count:', len(set(e['season_label'] for e in extras['seasonal'])))
+print('pets:', len(extras['pets']), 'ach:', len(extras['achievements']))
+print('pets missing assets:', [p['asset_name'] for p in extras['pets'] if not (ASSETS / (p['asset_name'] + '.imageset')).exists()][:10])
+print('ach missing assets:', [a['asset_name'] for a in extras['achievements'] if not (ASSETS / (a['asset_name'] + '.imageset')).exists()])
+pets_text = (ROOT / 'TwentyOne' / 'Models' / 'HabiticaPetsCatalog.swift').read_text(encoding='utf-8')
+print('pets swift entries:', len(re.findall('HabiticaPet[(]id:', pets_text)))
+names = re.findall('name: "([^"]+)"', pets_text)
+suffixes = collections.Counter((re.search('[(]([^)]+)[)]', n).group(1) if '(' in n else '?') for n in names)
+print('pet name suffixes:', dict(suffixes))
+print('pet egg names distinct:', len(set(n.split(' (')[0] for n in names)))
+ach_text = (ROOT / 'TwentyOne' / 'Models' / 'HabiticaAchievementsCatalog.swift').read_text(encoding='utf-8')
+print('ach swift entries:', len(re.findall('HabiticaAchievement[(]id:', ach_text)))
+seas_text = (ROOT / 'TwentyOne' / 'Models' / 'HabiticaSeasonalCatalog.swift').read_text(encoding='utf-8')
+print('seasonal swift entries:', len(re.findall('HabiticaSeasonalEntry[(]', seas_text)))
+for path, needle in [('TwentyOne/Views/ItemsView.swift', 'SeasonalShopView'), ('TwentyOne/Views/AchievementsView.swift', 'habiticaAchievements'), ('TwentyOne/Views/PetView.swift', 'HabiticaPetsView'), ('TwentyOne/Views/SeasonalShopView.swift', 'habiticaSeasonalEntries'), ('TwentyOne/Views/HabiticaPetsView.swift', 'habiticaPets')]:
+    t = (ROOT / path).read_text(encoding='utf-8')
+    print(path, needle, needle in t)

@@ -27,6 +27,7 @@ struct BossesView: View {
     var body: some View {
         NavigationStack {
             SwiftUI.List {
+                Section("Арена") { if let boss = currentBoss { BossArenaView(boss: boss) } else { Text("Все боссы побеждены") } }
                 Section("Текущий босс") { if let boss = currentBoss { bossRow(boss) } else { Text("Все боссы побеждены") } }
                 Section("Сила профиля") {
                     Text("Суммарная сила: \(profilePower)")

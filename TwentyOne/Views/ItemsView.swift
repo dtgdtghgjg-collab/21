@@ -248,24 +248,29 @@ struct ItemsView: View {
     @State private var exportURL: URL?
     @State private var lootboxResult: CatalogItem?
     @State private var showLootboxResult = false
+    @State private var showLootboxOpening = false
+    @State private var pendingLootboxItemId: String?
     var user: User? { users.first }
     var settings: AppSettings? { settingsList.first }
     var body: some View {
         NavigationStack {
             VStack {
                 Picker("Раздел", selection: $selectedTab) {
-                    Text("Мои").tag(0)
+                    Text("Сумка").tag(0)
                     Text("Рынок").tag(1)
                     Text("Черный рынок").tag(2)
                     Text("Создать").tag(3)
+                    Text("Сезон").tag(4)
                 }.pickerStyle(.segmented).padding(.horizontal)
                 if selectedTab == 0 { inventoryView }
                 else if selectedTab == 1 { marketList(isBlack: false) }
                 else if selectedTab == 3 { CustomItemView() }
+                else if selectedTab == 4 { SeasonalShopView() }
                 else { blackMarketView }
             }
             .navigationTitle("Предметы")
             .alert("Из лутбокса выпало", isPresented: $showLootboxResult, presenting: lootboxResult) { _ in Button("Забрать", role: .cancel) {} } message: { catalog in Text("\(catalog.name) [\(catalog.rank)] - \(catalog.slot): \(catalog.statName) +\(catalog.statPoints)") }
+            .sheet(isPresented: $showLootboxOpening) { LootboxOpeningView { catalog in finishLootboxOpening(catalog) } }
             .onAppear { ensureUser(); ensureSettings(); ensureFirstItem(); ensureBlackMarketSchedule() }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [UTType(filenameExtension: "json21") ?? .json]) { result in if let url = try? result.get() { importMessage = Json21Service.importFile(url) } }
         }
@@ -278,55 +283,44 @@ struct ItemsView: View {
                 if let exportURL = exportURL { ShareLink(item: exportURL) { Text("Поделиться экспортом") } }
             }
             Section("Лутбокс (1 раз в неделю)") {
-                if lootboxAvailable() { Button("Открыть лутбокс") { openLootbox() } }
+                if lootboxAvailable() { Button("Открыть лутбокс") { pendingLootboxItemId = nil; showLootboxOpening = true } }
                 else { Text("Уже открыт на этой неделе") }
             }
-            Section("Экипировано") {
+            Section("Сумка") {
                 if let user = user {
-                    if user.equipped.isEmpty { Text("Ничего не экипировано").font(.caption).foregroundStyle(.secondary) }
-                    else { Text(user.equipped.map { (item: Item) -> String in "\(item.name) (\(item.slot))" }.joined(separator: ", ")) }
-                }
-            }
-            Section("Мои предметы") {
-                if let user = user {
-                    ForEach(user.inventory, id: \.id) { item in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 8) { Image(systemName: itemIcon(item.slot)).foregroundStyle(AppPalette.gold); Text(item.name).font(.system(size: 16, weight: .semibold, design: .rounded)); RankBadge(rank: item.rank); if item.isEquipped { StatPill(icon: "checkmark.circle.fill", text: "экипировано", color: TwentyOneTab.dailies.theme.accent) } }
-                            if !item.itemDescription.isEmpty { Text(item.itemDescription).font(.caption).foregroundStyle(.secondary) }
-                            HStack(spacing: 6) { StatPill(icon: "tag.fill", text: item.slot, color: TwentyOneTab.market.theme.accent); StatPill(icon: "banknote.fill", text: "\(item.costPesetas) P", color: AppPalette.gold) }
-                            Text("Прочность \(item.durability)/\(item.maxDurability)").font(.caption).foregroundStyle(.secondary)
-                            GradientProgressBar(value: Double(item.durability), total: Double(max(item.maxDurability, 1)), color: TwentyOneTab.market.theme.accent, height: 8)
-                            HStack(spacing: 8) {
-                                Button(item.isEquipped ? "Снять" : "Экипировать") { toggleEquip(item) }.buttonStyle(TwentyPrimaryButtonStyle(color: TwentyOneTab.market.theme.accent))
-                                Button("Переработать (+\(recycleValue(item)) P)") { recycle(item) }.buttonStyle(TwentySecondaryButtonStyle(color: TwentyOneTab.market.theme.accent))
-                                Button("Экспорт .json21") { exportURL = Json21Service.exportItemFile(item) }.buttonStyle(TwentySecondaryButtonStyle(color: TwentyOneTab.market.theme.accent))
-                            }.font(.caption)
-                        }
-                    }
+                    InventoryGridView(items: Array(user.inventory), sellValue: { recycleValue($0) }, onEquip: { toggleEquip($0) }, onSell: { recycle($0) }, onUse: { useItem($0) }, onOpenLootbox: { item in pendingLootboxItemId = item.id.stringValue; showLootboxOpening = true })
                 }
             }
         }
         .scrollContentBackground(.hidden)
     }
     func marketList(isBlack: Bool) -> some View {
-        SwiftUI.List {
-            ForEach(marketItems(isBlack: isBlack)) { catalog in
-                HStack(alignment: .top, spacing: 12) {
-                    ItemArtwork(imageName: catalog.imageName, fallbackIcon: itemIcon(catalog.slot), size: 64)
-                    VStack(alignment: .leading, spacing: 7) {
-                        HStack(spacing: 7) { Text(catalog.name).font(.system(size: 16, weight: .semibold, design: .rounded)); RankBadge(rank: catalog.rank); if catalog.isPinpoon { StatPill(icon: "sparkles", text: "PINPOON", color: AppPalette.gold) } }
-                        if !catalog.desc.isEmpty { Text(catalog.desc).font(.caption).foregroundStyle(.secondary) }
-                        HStack(spacing: 6) { StatPill(icon: "tag.fill", text: catalog.slot, color: TwentyOneTab.market.theme.accent); StatPill(icon: "chart.bar.fill", text: "\(catalog.statName) +\(catalog.statPoints)", color: TwentyOneTab.market.theme.accent) }
-                        HStack(spacing: 6) { StatPill(icon: "banknote.fill", text: "\(catalog.pricePesetas) P", color: AppPalette.gold); StatPill(icon: "star.fill", text: "\(catalog.priceXp) XP", color: TwentyOneTab.profile.theme.accent) }
-                        Button("Купить") { buy(catalog) }.buttonStyle(TwentyPrimaryButtonStyle(color: TwentyOneTab.market.theme.accent)).disabled((user?.pesetas ?? 0) < catalog.pricePesetas)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                if isBlack { Text("Тёмный переулок: товары рангов S–R, рамки — красно-фиолетовые").font(.caption).foregroundStyle(Color(red: 0.85, green: 0.55, blue: 1.0)) }
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2), spacing: 10) {
+                    ForEach(marketItems(isBlack: isBlack)) { catalog in
+                        VStack(spacing: 7) {
+                            ItemArtwork(imageName: catalog.imageName, fallbackIcon: itemIcon(catalog.slot), size: 64)
+                            if catalog.isPinpoon { Image("pinpoon_badge").resizable().interpolation(.none).scaledToFit().frame(width: 80, height: 34) }
+                            Text(catalog.name).font(.system(size: 14, weight: .semibold, design: .rounded)).multilineTextAlignment(.center).lineLimit(2)
+                            RankBadge(rank: catalog.rank)
+                            if !catalog.desc.isEmpty { Text(catalog.desc).font(.caption).foregroundStyle(.secondary).lineLimit(3) }
+                            StatPill(icon: "chart.bar.fill", text: "\(catalog.statName) +\(catalog.statPoints)", color: TwentyOneTab.market.theme.accent)
+                            StatPill(icon: "banknote.fill", text: "\(catalog.pricePesetas) P", color: AppPalette.gold)
+                            Button("Купить") { buy(catalog) }.buttonStyle(TwentyPrimaryButtonStyle(color: isBlack ? Color(red: 0.72, green: 0.25, blue: 0.95) : TwentyOneTab.market.theme.accent)).disabled((user?.pesetas ?? 0) < catalog.pricePesetas)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(isBlack ? Color(red: 0.10, green: 0.05, blue: 0.16).opacity(0.96) : TwentyOneTab.market.theme.card.opacity(0.92)))
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(isBlack ? Color(red: 0.85, green: 0.25, blue: 0.55) : RankPalette.color(for: catalog.rank), lineWidth: 2))
                     }
                 }
-                .padding(.vertical, 6)
-                .listRowBackground(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(TwentyOneTab.market.theme.card.opacity(0.92)))
             }
+            .padding()
         }
         .scrollContentBackground(.hidden)
-        .background(theme.background(for: 3))
+        .background { if isBlack { Color(red: 0.05, green: 0.03, blue: 0.10).ignoresSafeArea() } else { theme.background(for: 3) } }
     }
     var blackMarketView: some View {
         Group {
@@ -398,7 +392,9 @@ struct ItemsView: View {
         return s.marketPurchased.components(separatedBy: ",").contains(catalog.id)
     }
     func marketItems(isBlack: Bool) -> [CatalogItem] {
-        let catalog = isBlack ? blackCatalog : regularCatalog
+        let habiticaBlack = habiticaCatalog.filter { ["S", "SS", "SSS", "R"].contains($0.rank) }
+        let habiticaRegular = habiticaCatalog.filter { !["S", "SS", "SSS", "R"].contains($0.rank) }
+        let catalog = isBlack ? blackCatalog + habiticaBlack : regularCatalog + habiticaRegular
         let day = Calendar.current.ordinality(of: .day, in: .era, for: Date()) ?? 0
         var result: [CatalogItem] = []
         for i in 0..<10 {
@@ -437,8 +433,9 @@ struct ItemsView: View {
     func openLootboxLive(user: User, settings s: AppSettings, realm: Realm) {
         if !lootboxAvailable() { return }
         let rolledRank = rollRank(level: user.level)
-        let pool = regularCatalog.filter { $0.rank == rolledRank }
-        guard let catalog = (pool.isEmpty ? regularCatalog.filter { $0.rank == "F" } : pool).randomElement() else { return }
+        let combinedRegular = regularCatalog + habiticaCatalog.filter { !["S", "SS", "SSS", "R"].contains($0.rank) }
+        let pool = combinedRegular.filter { $0.rank == rolledRank }
+        guard let catalog = (pool.isEmpty ? combinedRegular.filter { $0.rank == "F" } : pool).randomElement() else { return }
         let item = Item()
         item.name = catalog.name
         item.rank = catalog.rank
@@ -527,5 +524,60 @@ struct ItemsView: View {
             if let iIdx = iIdx { liveUser.inventory.remove(at: iIdx) }
             realm.delete(liveItem)
         }
+    }
+    func useItem(_ item: Item) {
+        guard let userId = user?.id else { return }
+        let itemId = item.id
+        let itemName = item.name
+        let xpGain = max(item.statModifiers.reduce(0) { $0 + $1.value } * 10, 10)
+        RealmStore.write { realm in
+            guard let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId), let liveItem = realm.object(ofType: Item.self, forPrimaryKey: itemId) else { return }
+            liveUser.xp += xpGain
+            while liveUser.xp >= User.xpForNextLevel(liveUser.level) { liveUser.xp -= User.xpForNextLevel(liveUser.level); liveUser.level += 1 }
+            var idx: Int? = nil
+            for (i, inv) in liveUser.inventory.enumerated() { if inv.id == liveItem.id { idx = i; break } }
+            if let idx = idx { liveUser.inventory.remove(at: idx) }
+            realm.delete(liveItem)
+        }
+        HistoryService.log("used_item", "Использован предмет: " + itemName, xp: xpGain)
+        Haptics.success()
+    }
+    func claimLootboxReward(_ catalog: CatalogItem) {
+        guard let userId = user?.id else { return }
+        RealmStore.write { realm in
+            guard let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId) else { return }
+            let item = Item()
+            item.name = catalog.name
+            item.rank = catalog.rank
+            item.itemDescription = catalog.desc
+            item.slot = catalog.slot
+            item.costPesetas = catalog.pricePesetas
+            item.costXp = catalog.priceXp
+            item.statModifiers[catalog.statName] = catalog.statPoints
+            item.isIndestructible = catalog.isPinpoon
+            item.uniqueFeature = catalog.uniqueFeature
+            item.acquiredAt = Date()
+            liveUser.inventory.append(item)
+        }
+        HistoryService.log("lootbox", "Из лутбокса выпало: " + catalog.name)
+        Haptics.success(); SoundService.coin()
+    }
+    func finishLootboxOpening(_ catalog: CatalogItem) {
+        if let pendingId = pendingLootboxItemId {
+            pendingLootboxItemId = nil
+            RealmStore.write { realm in
+                guard let liveUser = RealmStore.user(in: realm), let liveItem = realm.objects(Item.self).first(where: { $0.id.stringValue == pendingId }) else { return }
+                var eIdx: Int? = nil
+                for (i, eq) in liveUser.equipped.enumerated() { if eq.id == liveItem.id { eIdx = i; break } }
+                if let eIdx = eIdx { liveUser.equipped.remove(at: eIdx) }
+                var iIdx: Int? = nil
+                for (i, inv) in liveUser.inventory.enumerated() { if inv.id == liveItem.id { iIdx = i; break } }
+                if let iIdx = iIdx { liveUser.inventory.remove(at: iIdx) }
+                realm.delete(liveItem)
+            }
+        } else {
+            RealmStore.write { realm in RealmStore.settings(in: realm)?.lootboxLastDate = Date() }
+        }
+        claimLootboxReward(catalog)
     }
 }

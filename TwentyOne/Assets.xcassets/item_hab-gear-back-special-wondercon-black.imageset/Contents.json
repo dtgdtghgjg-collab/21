@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "filename": "item_hab-gear-back-special-wondercon-black.png",
+      "idiom": "universal",
+      "scale": "1x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

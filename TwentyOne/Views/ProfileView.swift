@@ -20,6 +20,9 @@ struct ProfileView: View {
     @State private var backupURL: URL?
     @State private var showBackupImporter = false
     @State private var backupMessage: String?
+    @State private var profileTab = 0
+    @State private var loanSlider: Double = 500
+    @State private var loanMessage: String?
 
     var user: User? {
         users.first
@@ -37,15 +40,40 @@ struct ProfileView: View {
         NavigationStack {
             SwiftUI.List {
                 headerSection
-                petSection
-                linksSection
-                appearanceSection
-                backupSection
-                if let user = user {
-                    levelBalanceSection(user)
-                    loanSection(user)
-                    profileDetailsSection
-                    customFieldsSection(user)
+                if let user = user { economyBarSection(user) }
+                Section {
+                    Picker("Раздел профиля", selection: $profileTab) {
+                        Text("Герой").tag(0)
+                        Text("Характеристики").tag(1)
+                        Text("Банк").tag(2)
+                        Text("Настройки").tag(3)
+                    }
+                    .pickerStyle(.segmented)
+                }
+                if profileTab == 0 {
+                    petSection
+                    if let user = user { equippedSection(user) }
+                } else if profileTab == 1 {
+                    if let user = user {
+                        Section { RadarChartView(attributes: Array(user.attributes)) }
+                        Section("Ключевые статы") { ProfileKeyStatsView() }
+                    }
+                    linksSection
+                } else if profileTab == 2 {
+                    if let user = user {
+                        levelBalanceSection(user)
+                        loanSection(user)
+                        Section { BankStatsView() }
+                    }
+                } else {
+                    Section { TitlesPickerView() }
+                    appearanceSection
+                    if let user = user {
+                        profileDetailsSection
+                        customFieldsSection(user)
+                    }
+                    linksSection
+                    backupSection
                 }
             }
             .scrollContentBackground(.hidden)
@@ -83,7 +111,9 @@ struct ProfileView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         TextField("Имя", text: $name).font(.system(size: 20, weight: .bold, design: .rounded))
                         TextField("Телефон", text: $phone).font(.subheadline).foregroundStyle(.secondary)
-                        if let user = user { StatPill(icon: "star.fill", text: "Уровень \(user.level)", color: TwentyOneTab.profile.theme.accent) }
+                        if let user = user, let realm = try? Realm() { Text(TitlesService.current(user: user, realm: realm).name).font(.subheadline.weight(.semibold)).foregroundStyle(AppPalette.gold) }
+                        if let user = user { HStack(spacing: 8) { StatPill(icon: "star.fill", text: "Уровень \(user.level)", color: TwentyOneTab.profile.theme.accent); StatPill(icon: "medal.fill", text: "Ранг \(HeroRank.name(for: user.level))", color: AppPalette.gold); StatPill(icon: "banknote.fill", text: "\(user.pesetas) P", color: AppPalette.gold) } }
+                        if let user = user, user.loanAmount > 0 || user.pesetas < 0 { HStack(spacing: 6) { Image("debt_badge").resizable().interpolation(.none).scaledToFit().frame(width: 24, height: 24); Text("В долгу").font(.caption.weight(.bold)).foregroundStyle(.red) } }
                     }
                 }
                 HStack(spacing: 10) {
@@ -112,6 +142,26 @@ struct ProfileView: View {
     }
 
     @ViewBuilder
+    private func economyBarSection(_ user: User) -> some View {
+        Section {
+            HStack(spacing: 8) {
+                StatPill(icon: "banknote.fill", text: "\(user.pesetas) P", color: AppPalette.gold)
+                StatPill(icon: "star.fill", text: "Уровень \(user.level)", color: TwentyOneTab.profile.theme.accent)
+                StatPill(icon: "medal.fill", text: "Ранг \(HeroRank.name(for: user.level))", color: AppPalette.gold)
+                if user.loanAmount > 0 || user.pesetas < 0 { StatPill(icon: "exclamationmark.triangle.fill", text: "В долгу", color: .red) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func equippedSection(_ user: User) -> some View {
+        Section("Экипировка") {
+            if user.equipped.isEmpty { Text("Ничего не экипировано").font(.caption).foregroundStyle(.secondary) }
+            else { ForEach(user.equipped, id: \.id) { item in HStack(spacing: 8) { RankBadge(rank: item.rank); Text(item.name); Spacer(); Text(item.slot).font(.caption).foregroundStyle(.secondary) } } }
+        }
+    }
+
+    @ViewBuilder
     private var appearanceSection: some View {
         Section("Оформление") {
             Toggle("Тёмная тема", isOn: Binding(get: { theme.isDark }, set: { theme.isDark = $0 }))
@@ -119,13 +169,6 @@ struct ProfileView: View {
             Toggle("Свайпы по кругу", isOn: Binding(get: { theme.swipeCyclic }, set: { theme.swipeCyclic = $0 })).disabled(!theme.swipeEnabled)
             Toggle("Звуки интерфейса", isOn: Binding(get: { SoundService.enabled }, set: { UserDefaults.standard.set($0, forKey: "soundsEnabled") }))
             Picker("Иконка приложения", selection: Binding(get: { AppIconService.currentName }, set: { AppIconService.setIcon($0) })) { Text("Стандартная").tag("default"); Text("Золотая").tag("AppIcon-Gold"); Text("Фиолетовая").tag("AppIcon-Purple"); Text("Чёрная").tag("AppIcon-Black") }
-            Picker("Акцент", selection: Binding(get: { theme.accentName }, set: { theme.accentName = $0 })) {
-                Text("Синий").tag("blue")
-                Text("Красный").tag("red")
-                Text("Зелёный").tag("green")
-                Text("Фиолетовый").tag("purple")
-                Text("Оранжевый").tag("orange")
-            }
             Picker("Вкладка для обоев", selection: $wallpaperTab) {
                 Text("Профиль").tag(0)
                 Text("Дейлики").tag(1)
@@ -176,11 +219,18 @@ struct ProfileView: View {
     private func loanSection(_ user: User) -> some View {
         Section("Заём") {
             if user.loanAmount > 0 {
-                Text("Активный заём: \(user.loanAmount) P к возврату")
+                Text("Активный заём: взято \(user.loanPrincipal) P, к возврату \(user.loanAmount) P")
                 if let due = user.loanDueDate { Text("Срок возврата: \(due.formatted(date: .abbreviated, time: .omitted))") }
                 Button("Вернуть заём") { repayLoan() }.disabled(user.pesetas < user.loanAmount)
+            } else if user.level < 5 {
+                Text("Заём открывается с 5 уровня")
             } else {
-                if user.level < 5 { Text("Заём открывается с 5 уровня") } else { Text("500 P сейчас, вернуть 550 P через 7 дней"); Button("Взять в долг 500 P") { takeLoan() } }
+                let maxLoan = HeroRank.maxLoan(for: user.level)
+                Text("Вы берете в долг \(Int(loanSlider)) песет. Максимум для вашего ранга: \(maxLoan)")
+                Slider(value: $loanSlider, in: 100...Double(max(maxLoan, 100)), step: 50)
+                Text("Вернуть через \(HeroRank.loanTermDays) дней: \(HeroRank.repayAmount(for: Int(loanSlider))) P (+\(HeroRank.interestPercent)%)").font(.caption).foregroundStyle(.secondary)
+                Button("Взять в долг \(Int(loanSlider)) P") { takeLoan(amount: Int(loanSlider)) }
+                if let loanMessage = loanMessage { Text(loanMessage).font(.caption).foregroundStyle(.secondary) }
             }
         }
     }
@@ -270,6 +320,7 @@ struct ProfileView: View {
             }
         }
         .shadow(color: Color.black.opacity(0.30), radius: 10, x: 0, y: 5)
+        .overlay(alignment: .topTrailing) { if let user = user, user.loanAmount > 0 || user.pesetas < 0 { Image("debt_badge").resizable().interpolation(.none).scaledToFit().frame(width: 28, height: 28).offset(x: 6, y: -6) } }
     }
 
     func checkDebt() {
@@ -277,14 +328,20 @@ struct ProfileView: View {
         name = users.first?.name ?? ""
         phone = users.first?.phone ?? ""
     }
-    func takeLoan() {
+    func takeLoan(amount: Int) {
         guard let current = user, current.loanAmount == 0, current.level >= 5 else { return }
+        let principal = min(max(amount, 100), HeroRank.maxLoan(for: current.level))
+        let repay = HeroRank.repayAmount(for: principal)
         let userId = current.id
         RealmStore.write { realm in
             guard let live = realm.object(ofType: User.self, forPrimaryKey: userId), live.loanAmount == 0, live.level >= 5 else { return }
-            live.pesetas += 500; live.loanAmount = 550; live.loanDueDate = Calendar.current.date(byAdding: .day, value: 7, to: Date())
+            live.pesetas += principal; live.loanPrincipal = principal; live.loanAmount = repay; live.loanTakenAt = Date(); live.loanDueDate = Calendar.current.date(byAdding: .day, value: HeroRank.loanTermDays, to: Date())
         }
+        HistoryService.log("loan_taken", "Взят заём: \(principal) P, вернуть \(repay) P", pesetas: principal)
+        loanMessage = "Взято \(principal) P, вернуть \(repay) P"
+        Haptics.success(); SoundService.coin()
     }
+    func takeLoan() { takeLoan(amount: 500) }
     func repayLoan() {
         guard let current = user, current.pesetas >= current.loanAmount else { return }
         let userId = current.id

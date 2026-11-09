@@ -5,9 +5,12 @@ struct CalendarView: View {
     @ObservedResults(Event.self) var events
     @ObservedResults(Daily.self) var dailies
     @ObservedResults(Boss.self) var bosses
+    @ObservedResults(HistoryEntry.self) var historyEntries
     @State private var month: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
     @State private var selectedDay: Date?
     @State private var showEventForm = false
+    @State private var viewMode = 0
+    @State private var diaryDay: Date?
     @State private var newTitle = ""
     @State private var newDate = Date()
     @State private var newType = "custom"
@@ -18,6 +21,8 @@ struct CalendarView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    Picker("Вид", selection: $viewMode) { Text("Месяц").tag(0); Text("Год").tag(1) }.pickerStyle(.segmented)
+                    if viewMode == 0 { MonthProgressView(month: month, entries: Array(historyEntries), totalDailies: dailies.filter { !$0.isRandomDaily }.count) }
                     HStack {
                         Button { changeMonth(by: -1) } label: { Image(systemName: "chevron.left").font(.system(size: 13, weight: .bold)).foregroundStyle(.white).frame(width: 36, height: 36).background(Circle().fill(TwentyOneTab.history.theme.card)).overlay(Circle().strokeBorder(Color.white.opacity(0.12), lineWidth: 1)) }.buttonStyle(.plain)
                         Spacer()
@@ -33,35 +38,36 @@ struct CalendarView: View {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
                         ForEach(Array(monthCells.enumerated()), id: \.offset) { item in
                             if let day = item.element {
-                                Button { openForm(for: day) } label: {
+                                let stats = CalendarDayStats.make(for: day, entries: Array(historyEntries), dailies: Array(dailies))
+                                let legendary = LegendaryDay.info(for: day)
+                                Button { diaryDay = day; selectedDay = day } label: {
                                     VStack(spacing: 2) {
                                         Text("\(Calendar.current.component(.day, from: day))").font(.body)
-                                        Circle().fill(eventsOn(day).isEmpty ? Color.clear : AppPalette.gold).frame(width: 6, height: 6)
+                                        Text(stats.markerEmojis.joined()).font(.system(size: 9)).frame(height: 10)
+                                        if stats.isMissed { Image("calendar_skull").resizable().interpolation(.none).scaledToFit().frame(width: 16, height: 16) } else if stats.isPerfect { HStack(spacing: 2) { Image("calendar_chest").resizable().interpolation(.none).scaledToFit().frame(width: 16, height: 16); Image("calendar_flame").resizable().interpolation(.none).scaledToFit().frame(width: 12, height: 12) } } else if LegendaryDay.info(for: day)?.title == "Хэллоуин" { Image("calendar_pumpkin").resizable().interpolation(.none).scaledToFit().frame(width: 16, height: 16) }
                                     }
-                                    .frame(maxWidth: .infinity, minHeight: 44)
-                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Calendar.current.isDateInToday(day) ? TwentyOneTab.history.theme.accent.opacity(0.30) : Color.white.opacity(0.05)))
-                                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Calendar.current.isDateInToday(day) ? TwentyOneTab.history.theme.accent.opacity(0.55) : Color.white.opacity(0.06), lineWidth: 1))
+                                    .frame(maxWidth: .infinity, minHeight: 52)
+                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(CalendarDayStats.heatColor(ratio: stats.ratio, isPerfect: stats.isPerfect, isMissed: stats.isMissed)))
+                                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(LegendaryDay.isAccountBirthday(day) ? Color.purple : (legendary != nil ? AppPalette.gold : (Calendar.current.isDateInToday(day) ? TwentyOneTab.history.theme.accent.opacity(0.55) : Color.white.opacity(0.06))), lineWidth: (LegendaryDay.isAccountBirthday(day) || legendary != nil) ? 2 : 1))
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
+                                .contextMenu { Button("Добавить событие") { openForm(for: day) } }
                             } else {
-                                Color.clear.frame(height: 44)
+                                Color.clear.frame(height: 52)
                             }
                         }
                     }
                     .gesture(DragGesture().onEnded { value in
                         if value.translation.width < -50 { changeMonth(by: 1) } else if value.translation.width > 50 { changeMonth(by: -1) }
                     })
-                    if let selectedDay = selectedDay {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("События дня").font(.headline)
-                            if eventsOn(selectedDay).isEmpty {
-                                Text("Нет событий").font(.caption).foregroundStyle(.secondary)
-                            }
-                            ForEach(eventsOn(selectedDay), id: \.id) { event in
-                                eventRow(event)
-                            }
-                        }
+                    if viewMode == 1 { YearStatsView(year: Calendar.current.component(.year, from: month), entries: Array(historyEntries), totalDailies: dailies.filter { !$0.isRandomDaily }.count) }
+                    MoodLineChartView(month: month)
+                    if let diaryDay = diaryDay {
+                        DayDiaryView(day: diaryDay, stats: CalendarDayStats.make(for: diaryDay, entries: Array(historyEntries), dailies: Array(dailies)), events: eventsOn(diaryDay)) { openForm(for: diaryDay) }
+                            .frame(height: 480)
+                            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(TwentyOneTab.history.theme.card.opacity(0.92)))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Грядущие события").font(.headline)

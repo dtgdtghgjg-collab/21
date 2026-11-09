@@ -80,6 +80,11 @@ struct PetView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            NavigationLink("Все питомцы Habitica (676)") {
+                HabiticaPetsView()
+            }
+            .font(.subheadline.weight(.semibold))
         }
         .padding()
         .onReceive(idleTimer) { _ in

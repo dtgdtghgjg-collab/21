@@ -19,6 +19,19 @@ struct AchievementsView: View {
                 .padding(.vertical, 4)
                 .listRowBackground(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(TwentyOneTab.achievements.theme.card.opacity(0.92)))
             }
+            Section("Habitica — 42 достижения") {
+                ForEach(habiticaAchievements) { ach in
+                    HStack(spacing: 12) {
+                        ItemArtwork(imageName: ach.assetName, fallbackIcon: "trophy", size: 48)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(ach.title).font(.system(size: 16, weight: .semibold, design: .rounded))
+                            if !ach.desc.isEmpty { Text(ach.desc).font(.caption).foregroundStyle(.secondary) }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                    .listRowBackground(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(TwentyOneTab.achievements.theme.card.opacity(0.92)))
+                }
+            }
         }
         .scrollContentBackground(.hidden)
         .background(theme.background(for: 0))
