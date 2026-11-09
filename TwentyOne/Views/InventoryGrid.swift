@@ -15,7 +15,7 @@ func bagCategory(for item: Item) -> BagCategory {
     if item.uniqueFeature == "lootbox" || name.contains("лутбокс") || name.contains("сундук") { return .lootboxes }
     let words = ["зель", "эликсир", "свиток", "яйцо", "пирог", "суп", "хлеб", "сыр", "конфет", "печень"]
     if ["Зелье", "Еда", "Свиток", "Расходник"].contains(item.slot) || words.contains(where: { name.contains($0) }) { return .consumables }
-    if item.statModifiers.isEmpty { return .junk }
+    if item.statModifiers.count == 0 { return .junk }
     return .gear
 }
 
@@ -86,7 +86,7 @@ struct ItemDetailSheet: View {
     let onOpenLootbox: () -> Void
     @Environment(\.dismiss) var dismiss
     var category: BagCategory { bagCategory(for: item) }
-    var statsText: String { item.statModifiers.map { $0.key + " +" + String($0.value) }.joined(separator: ", ") }
+    var statsText: String { item.statModifiers.keys.sorted().map { key in key + " +" + String(item.statModifiers[key] ?? 0) }.joined(separator: ", ") }
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {

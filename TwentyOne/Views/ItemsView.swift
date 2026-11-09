@@ -529,7 +529,7 @@ struct ItemsView: View {
         guard let userId = user?.id else { return }
         let itemId = item.id
         let itemName = item.name
-        let xpGain = max(item.statModifiers.reduce(0) { $0 + $1.value } * 10, 10)
+        let xpGain = max(item.statModifiers.values.reduce(0, +) * 10, 10)
         RealmStore.write { realm in
             guard let liveUser = realm.object(ofType: User.self, forPrimaryKey: userId), let liveItem = realm.object(ofType: Item.self, forPrimaryKey: itemId) else { return }
             liveUser.xp += xpGain

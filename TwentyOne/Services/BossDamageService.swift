@@ -8,7 +8,7 @@ enum BossDamageService {
     static let realTypes = ["teacher", "inspector", "deadline", "examiner", "chief"]
     static func playerPower(user: User) -> Int {
         let a = user.attributes.reduce(0) { $0 + $1.total }
-        let e = user.equipped.reduce(0) { $0 + $1.statModifiers.reduce(0) { $0 + $1.value } }
+        let e = user.equipped.reduce(0) { $0 + $1.statModifiers.values.reduce(0, +) }
         return a + e
     }
     static func damageForDaily(xpReward: Int, subTotal: Int, equippedPower: Int) -> Int {
@@ -31,7 +31,7 @@ enum BossDamageService {
                 guard let id = subAttributeId, let oid = try? ObjectId(string: id), let sub = realm.object(ofType: SubAttribute.self, forPrimaryKey: oid) else { return 0 }
                 return sub.value
             }()
-            let equippedPower = user.equipped.reduce(0) { $0 + $1.statModifiers.reduce(0) { $0 + $1.value } }
+            let equippedPower = user.equipped.reduce(0) { $0 + $1.statModifiers.values.reduce(0, +) }
             let d = damageForDaily(xpReward: xpReward, subTotal: subTotal, equippedPower: equippedPower)
             boss.hp = max(0, boss.hp - d)
             damage = d

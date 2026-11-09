@@ -86,7 +86,7 @@ enum Json21Service {
     }
     static func exportItemFile(_ item: Item) -> URL? {
         var mods: [String: Int] = [:]
-        for (key, value) in item.statModifiers { mods[key] = value }
+        for key in item.statModifiers.keys { mods[key] = item.statModifiers[key] ?? 0 }
         var imageB64: String? = nil
         if !item.imagePath.isEmpty, let data = try? Data(contentsOf: URL(fileURLWithPath: item.imagePath)) { imageB64 = data.base64EncodedString() }
         let doc = Json21Document(entity_type: "item", name: item.name, rank: item.rank, description: item.itemDescription, image_base64: imageB64, pixel_art_ascii: nil, slot: item.slot, durability: item.durability, stat_modifiers: mods, perks: item.perks.map { Json21Perk(trigger: $0.trigger, effect: $0.effect, params: $0.params) }, rewards: nil, cost_pesetas: item.costPesetas, cost_xp: item.costXp, hp: nil, required_attributes: nil, order_index: nil, calendar_event_link: nil)

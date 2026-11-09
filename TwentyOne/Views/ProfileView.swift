@@ -397,7 +397,7 @@ struct ProfileView: View {
         guard let userId = user?.id else { return }
         RealmStore.write { realm in
             guard let live = realm.object(ofType: User.self, forPrimaryKey: userId) else { return }
-            live.customFields.remove(atOffsets: offsets)
+            for index in offsets.sorted().reversed() { if index < live.customFields.count { live.customFields.remove(at: index) } }
         }
     }
 

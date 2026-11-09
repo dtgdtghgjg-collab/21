@@ -16,7 +16,7 @@ struct BossesView: View {
         guard let user = user else { return 0 }
         let attributesPower: Int = user.attributes.reduce(0) { $0 + $1.total }
         let equippedPower: Int = user.equipped.reduce(0) { equippedSum, item in
-            let itemPower: Int = item.statModifiers.reduce(0) { $0 + $1.value }
+            let itemPower: Int = item.statModifiers.values.reduce(0, +)
             return equippedSum + itemPower
         }
         return attributesPower + equippedPower
@@ -67,7 +67,7 @@ struct BossesView: View {
             let active = realm.objects(Boss.self).filter { !$0.isDefeated && !$0.departed }.sorted { ($0.orderIndex ?? Int.max) < ($1.orderIndex ?? Int.max) }
             let attributesPower: Int = liveUser.attributes.reduce(0) { $0 + $1.total }
             let equippedPower: Int = liveUser.equipped.reduce(0) { equippedSum, item in
-                let itemPower: Int = item.statModifiers.reduce(0) { $0 + $1.value }
+                let itemPower: Int = item.statModifiers.values.reduce(0, +)
                 return equippedSum + itemPower
             }
             let power: Int = attributesPower + equippedPower
